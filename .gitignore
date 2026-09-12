@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+reports/
+scan-results/
+profiles/private/
+browser-data/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.har
+*.log
+*.tsbuildinfo
