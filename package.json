@@ -1,0 +1,30 @@
+{
+  "name": "kanka-web-audit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Website resource inventory by kanka.dev",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "bin": {
+    "kanka-web-audit": "dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test --test-concurrency=1 dist/tests/*.test.js",
+    "scan": "node dist/src/cli.js",
+    "check": "tsc --noEmit"
+  },
+  "author": "Akay <mail@kanka.dev>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "fast-xml-parser": "5.11.1",
+    "playwright": "1.63.0",
+    "robots-parser": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.4",
+    "typescript": "7.0.2"
+  }
+}

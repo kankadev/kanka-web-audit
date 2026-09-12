@@ -2,9 +2,24 @@
 
 Stand: 2026-09-12
 
-Status: Planung; Implementierung noch nicht begonnen
+Status: Version 0.1.0 implementiert und lokal abgenommen; optionale Distribution ausstehend
 
 Verantwortlich: kanka.dev
+
+## Abnahme der ersten Version
+
+Am 2026-09-12 wurde Version 0.1.0 umgesetzt. Die Abschnitte darunter enthalten den ursprünglichen Entwurf; dieser Abnahmestand und die aktuelle `readme.md` beschreiben den ausgelieferten Funktionsumfang.
+
+- Node.js 24.19.0, Playwright 1.63.0 mit Chromium, fast-xml-parser 5.11.1 und robots-parser 3.0.1; Versionen im Lockfile festgeschrieben.
+- Acht automatisierte Testgruppen unter Windows und Linux/amd64. Der Linux-Durchlauf prüft zusätzlich den tatsächlichen SIGTERM-Prozessabbruch. Tests erzeugen ausschließlich lokale, synthetische Daten.
+- Docker-Test mit aktivierter Chromium-Sandbox, nicht privilegiertem Benutzer und gemountetem Ausgabeordner bestanden. HTML-, JSON- und CSV-Dateien sind auf dem Host vorhanden. Runtime-Image `kanka-web-audit:0.1.0` lokal gebaut.
+- HTML-Bericht unter Desktop- und Mobilbreite visuell geprüft; Suche und Offline-Betrieb automatisiert geprüft. Große Listen werden schrittweise und Details beim Aufklappen erzeugt.
+- Zwei ausdrücklich freigegebene Live-Ziele wurden jeweils zehn Minuten lang in beiden CSP-Modi ohne Consent-Interaktion untersucht. Dabei wurden 42 bzw. 72 Seiten vollständig in beiden Modi bearbeitet. Beide Läufe endeten am Zeitlimit mit korrekt markierten Teilergebnissen. Zieladressen und Rohberichte bleiben außerhalb der Versionsverwaltung.
+- Produktionsabhängigkeiten ohne gemeldete npm-Audit-Funde. Vorhandene Git-Historie mit Gitleaks geprüft; Commit-Hook einschließlich gezielter Ausnahmen erneut getestet. Dies ist kein vollständiger Security-Audit der Anwendung.
+
+Bewusste Grenzen der ersten Version: keine automatische Consent-Erkennung, keine Login-Profile, kein vollständiger statischer JavaScript-/CSS-Parser, keine garantierte Erfassung ungewählter srcset-Alternativen oder Worker-WebSockets. Eigene Consent- und Interaktionsprofile sind über Selektoren und sichtbare Zustandsbestätigung möglich. Zwischenstände werden nach jeder bearbeiteten Seite gespeichert; ein harter Prozessabbruch kann Beobachtungen seit dem letzten Zwischenstand verlieren.
+
+Die frühe Registry-Veröffentlichung, öffentliche Lizenzierung und eine Weboberfläche gehören zur optionalen Weiterentwicklung. Für die gelegentliche Nutzung steht die lokale CLI beziehungsweise das aus dem Checkout baubare Docker-Image zur Verfügung.
 
 ## 1. Ziel
 
@@ -229,51 +244,51 @@ Nachweis vom 2026-09-12: Initialer Dokumentationscommit `66b235f` nach `main` ü
 
 ### Phase 1 – Reproduzierbarer technischer Kern
 
-- [ ] Aktuelle Laufzeit-/Playwright-Versionen prüfen und festschreiben.
-- [ ] Projektstruktur, Lockfile, Build, Eingabeprüfung und CLI-Hilfe erstellen.
-- [ ] Lokalen Fixture-Server und erste Browsermessung implementieren.
-- [ ] Datenmodell und versioniertes JSON-Ergebnis festlegen.
+- [x] Aktuelle Laufzeit-/Playwright-Versionen prüfen und festschreiben.
+- [x] Projektstruktur, Lockfile, Build, Eingabeprüfung und CLI-Hilfe erstellen.
+- [x] Lokalen Fixture-Server und erste Browsermessung implementieren.
+- [x] Datenmodell und versioniertes JSON-Ergebnis festlegen.
 
 Abnahme: Ein lokaler Testscan erfasst die erwarteten Ressourcen einschließlich Fehlern.
 
 ### Phase 2 – Crawl und Abdeckung
 
-- [ ] Sitemap-/Index-Verarbeitung, interne Links und Deduplizierung implementieren.
-- [ ] Scope, robots.txt, Limits, Timeouts und Fortschritt umsetzen.
-- [ ] Abbruchverhalten und teilweise Ergebnisse prüfen.
+- [x] Sitemap-/Index-Verarbeitung, interne Links und Deduplizierung implementieren.
+- [x] Scope, robots.txt, Limits, Timeouts und Fortschritt umsetzen.
+- [x] Abbruchverhalten und teilweise Ergebnisse prüfen.
 
 Abnahme: Der Fixture-Crawl besucht genau die zulässigen Seiten und dokumentiert Auslassungen.
 
 ### Phase 3 – CSP und Szenarien
 
-- [ ] CSP-Ereignisse und getrennten Inventarmodus integrieren.
-- [ ] DOM-Referenzen, Frames, Redirects und Verbindungsarten prüfen.
-- [ ] Consent-Profile mit Zustandsbestätigung und begrenzten Interaktionen umsetzen.
+- [x] CSP-Ereignisse und getrennten Inventarmodus integrieren.
+- [x] DOM-Referenzen, Frames, Redirects und Verbindungsarten prüfen.
+- [x] Consent-Profile mit Zustandsbestätigung und begrenzten Interaktionen umsetzen.
 
 Abnahme: Die Unterschiede zwischen produktiver CSP, Inventarmodus und Consent-Zuständen entsprechen den Fixtures.
 
 ### Phase 4 – Nutzbare Berichte
 
-- [ ] Aggregation, HTML-Bericht, Filter und CSV entwickeln.
-- [ ] Maskierung, sichere Darstellung und Offline-Funktion prüfen.
-- [ ] Abdeckung und Teilergebnisse auf der Startansicht sichtbar machen.
+- [x] Aggregation, HTML-Bericht, Filter und CSV entwickeln.
+- [x] Maskierung, sichere Darstellung und Offline-Funktion prüfen.
+- [x] Abdeckung und Teilergebnisse auf der Startansicht sichtbar machen.
 
 Abnahme: Jede aggregierte Ressource ist zu ihrer Fundseite zurückverfolgbar; der Bericht lädt keine externen Ressourcen.
 
 ### Phase 5 – Container und erste Anwendung
 
-- [ ] Docker-Build mit passender Browser-Version erstellen.
-- [ ] Rechte, Sandbox, Ausgabe-Mount und Prozessabbruch testen.
-- [ ] Einen vollständigen Fixture-Scan im Container durchführen.
-- [ ] Nach Auswahl eines eigenen Ziels einen begrenzten realen Scan ausführen.
-- [ ] Geprüfte Befehle, Einstellungen und Grenzen in `readme.md` übernehmen.
+- [x] Docker-Build mit passender Browser-Version erstellen.
+- [x] Rechte, Sandbox, Ausgabe-Mount und Prozessabbruch testen.
+- [x] Einen vollständigen Fixture-Scan im Container durchführen.
+- [x] Nach Auswahl eines eigenen Ziels einen begrenzten realen Scan ausführen.
+- [x] Geprüfte Befehle, Einstellungen und Grenzen in `readme.md` übernehmen.
 
 Abnahme: Der dokumentierte Startbefehl funktioniert in der getesteten Umgebung und erzeugt alle Berichte. Nicht getestete Plattformen bleiben als solche benannt.
 
 ### Phase 6 – Optionale Distribution
 
 - [ ] Private Registry und Release-Tags festlegen.
-- [ ] Build-/Test-Automatisierung mit minimalen Berechtigungen ergänzen.
+- [x] Build-/Test-Automatisierung mit minimalen Berechtigungen ergänzen; Remote-Ausführung wird nach dem Push geprüft.
 - [ ] Für öffentliche Freigabe Lizenz und Inhalte einschließlich Historie prüfen.
 - [ ] Erst nach gesonderter Entscheidung Repository oder Images öffentlich machen.
 

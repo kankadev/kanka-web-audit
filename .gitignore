@@ -13,3 +13,5 @@ test-results/
 *.har
 *.log
 *.tsbuildinfo
+*.tar
+*.tar.gz

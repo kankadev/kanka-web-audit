@@ -13,8 +13,15 @@ else
     exit 1
 fi
 
-"$scanner" git --staged --pre-commit --redact=100 --no-banner --exit-code=42 .
+git diff --cached --no-ext-diff --name-only >/dev/null || exit 1
+scan_output=$("$scanner" git --staged --pre-commit --redact=100 --no-color --no-banner --exit-code=42 . 2>&1)
 result=$?
+printf '%s\n' "$scan_output" >&2
+# Some scanner versions return zero despite a logged Git subprocess error.
+if printf '%s\n' "$scan_output" | grep -Eq '(^|[[:space:]])(ERR|FTL)([[:space:]]|$)'; then
+    echo 'Commit stopped: Gitleaks reported an internal error.' >&2
+    exit 1
+fi
 if [ "$result" -eq 0 ]; then
     exit 0
 fi

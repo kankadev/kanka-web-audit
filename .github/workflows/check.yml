@@ -1,0 +1,23 @@
+name: Build and browser tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  container:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build test image
+        run: docker build --target test -t kanka-web-audit:test .
+      - name: Run isolated browser fixtures
+        run: docker run --rm --init --shm-size=1g --security-opt seccomp=./docker/seccomp_profile.json kanka-web-audit:test
+      - name: Build runtime image
+        run: docker build --target runtime -t kanka-web-audit:0.1.0 .
+      - name: Check CLI
+        run: docker run --rm kanka-web-audit:0.1.0 --help

@@ -1,0 +1,18 @@
+{
+  "target": "https://site.test/",
+  "maxPages": 100,
+  "concurrency": 2,
+  "waitMs": 2000,
+  "modes": ["enforce", "inventory"],
+  "scenarios": [
+    { "name": "initial" },
+    {
+      "name": "accepted",
+      "consent": { "selector": "#consent-accept", "confirm": "[data-consent='accepted']" }
+    },
+    {
+      "name": "rejected",
+      "consent": { "selector": "#consent-reject", "confirm": "[data-consent='rejected']" }
+    }
+  ]
+}
