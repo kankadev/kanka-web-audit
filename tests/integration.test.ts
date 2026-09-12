@@ -135,6 +135,7 @@ test('service-worker fetches are captured and URL masking does not merge identit
     assert.ok(r.observations.some(o=>o.url.endsWith('/worker-fetch')));
     const first=r.observations[0];r.observations=[{...first,url:'https://asset.test/a?x=one'},{...first,url:'https://asset.test/a?x=two'}];
     const safe=redactor(false)(r);assert.equal(safe.observations[0].url,safe.observations[1].url);
+    assert.equal(safe.observations[0].origin,first.origin);
     assert.notEqual(safe.observations[0].urlKey,safe.observations[1].urlKey);
     const doc=html({...safe,issues:['</script><script>window.pwned=true</script>']});
     assert.ok(!doc.includes('</script><script>window.pwned'));

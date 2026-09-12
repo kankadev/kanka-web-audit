@@ -8,9 +8,10 @@ export function redactor(full: boolean, key = randomBytes(32)) {
     try {
       const u=new URL(raw);
       if(!['http:','https:','ws:','wss:'].includes(u.protocol)) return raw;
+      const originOnly=raw===u.origin;
       u.username=''; u.password=''; u.hash='';
       if(!full) for(const name of [...new Set(u.searchParams.keys())]) u.searchParams.set(name,'[redacted]');
-      return u.href;
+      return originOnly?u.origin:u.href;
     } catch { return raw; }
   };
   const text = (raw: string) => raw.replace(/(?:https?|wss?):\/\/[^\s<>"']+/g,u=>url(u));
