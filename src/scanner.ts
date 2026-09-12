@@ -43,6 +43,23 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
     browser=await chromium.launch({headless:options.browserProfile==='headless',chromiumSandbox:true,
       timeout:Math.max(1,Math.min(options.timeoutMs,options.maxDurationMs-(Date.now()-Date.parse(state.started))))});
     await save(state);
+    if(options.audit==='thorough') {
+      let passed=discovery.allowed(options.target);
+      if(passed)for(const mode of options.modes)for(const scenario of options.scenarios) {
+        if(controller.signal.aborted){passed=false;break;}
+        await visit(browser,options.target,mode,scenario,options,controller.signal,state.observations,state.visits,'preflight');
+        const checked=state.visits.at(-1)!;
+        if(checked.state!=='complete'||!checked.scenarioConfirmed||checked.issues.length)passed=false;
+      }
+      await save(state);
+      if(!passed) {
+        state.state=controller.signal.aborted&&!timedOut?'aborted':'partial';
+        state.issues.push('Consent preflight did not pass; crawl not started. Verify visible decisions, state selectors and bot/region behavior.');
+        if(timedOut)state.issues.push('Maximum scan duration reached.');
+        for(const p of state.pages.filter(p=>p.state==='queued')){p.state='skipped';p.reason='consent-preflight';}
+        return state;
+      }
+    }
     let processed=0;
     while(!controller.signal.aborted) {
       const available=state.pages.filter(p=>p.state==='queued');
@@ -59,8 +76,8 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
             for(const u of links)add(u,p.depth+1,p.url);
           } catch {state.issues.push('Browser visit setup failed.');}
         }
-        const visits=state.visits.filter(v=>v.url===p.url);
-        p.state=visits.length===options.modes.length*options.scenarios.length && visits.every(v=>v.state==='complete')?'visited':'failed';
+        const visits=state.visits.filter(v=>v.url===p.url&&v.purpose!=='preflight');
+        p.state=visits.length===options.modes.length*options.scenarios.length && visits.every(v=>v.state==='complete'&&v.scenarioConfirmed)?'visited':'failed';
         progress(`Pages processed: ${processed}; discovered: ${state.pages.length}; observations: ${state.observations.length}`);
         await save(state);
       }));

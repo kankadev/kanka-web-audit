@@ -1,5 +1,23 @@
 # Kanka Web Audit
 
+## Gründlicher Audit (0.2.0)
+
+Für wiederkehrende Bestandsprüfungen ist `--audit thorough --profile examples/profile.json` vorgesehen. Die Selektoren des Beispiels müssen an die geprüfte Website angepasst werden. Der Ablauf ist unabhängig von einer bestimmten Consent-Management-Plattform:
+
+1. Auf der Startseite werden Akzeptieren und Ablehnen jeweils in frischen Kontexten und beiden CSP-Modi vorab geprüft.
+2. Erst nach erfolgreicher Vorprüfung startet der Crawl. Jeder Seitenbesuch zeichnet die Phase vor der Entscheidung auf, versucht normales Scrollen und prüft danach die konfigurierte Entscheidung mit eindeutigem Zielzustand.
+3. Nach der Entscheidung werden erneut Ressourcen beim Scrollen und bei konfigurierten Interaktionen erfasst. Der Zielzustand wird anschließend nochmals geprüft.
+
+`decision` benennt `accept` oder `reject`, `expectedState` verweist auf einen Eintrag in `consentStates`. Beide Entscheidungen brauchen unterschiedliche Zielzustände und eine sichtbare Bestätigung. Ein bereits vorhandener Zielzustand oder eine bereits vor dem Klick sichtbare Bestätigung kann die Vorprüfung nicht bestehen. Das hilft, automatische Freigaben oder unbrauchbare Selektoren zu erkennen, ermittelt aber nicht automatisch deren Ursache.
+
+Scheitert die Vorprüfung, enthält der Teilergebnis-Report den Grund und `purpose: preflight`; der lange Crawl wird nicht gestartet. Diese Vorabmessungen bleiben über den Abschnittsfilter von `purpose: crawl` unterscheidbar. Später auf Unterseiten fehlgeschlagene Zustandsprüfungen zählen ebenfalls nicht als erfolgreich geprüfte Seiten.
+
+Scrollen erfolgt per Mausrad und respektiert Seitensperren. Im Bericht stehen angeforderte Schritte und tatsächlich beobachtete Bewegungen des Hauptdokuments. Keine Bewegung kann auch das Seitenende bedeuten; daraus wird nicht automatisch eine Banner-Sperre abgeleitet. Gesonderte Scrollcontainer werden nicht vollständig vermessen.
+
+Der Standard `--audit resources` bleibt für reine Ressourceninventare, Websites ohne CMP und unbekannte Consent-Konfigurationen verfügbar und wird ausdrücklich als unvollständig hinsichtlich Consent gekennzeichnet. Ein normaler Besucher aus einer gewünschten Region muss tatsächlich über den passenden Netzausgang getestet werden. Headed allein garantiert weder diese Region noch die Behandlung als menschlicher Besucher. Das Tool ändert keine produktiven Bot-/Geo-Einstellungen.
+
+Die Prüfung erleichtert CSP-Konfiguration und das Auffinden möglicher Einträge für eine CMP. Sie leitet weder aus jeder externen Anfrage eine Pflicht zur Einwilligung noch aus einer leeren Fehlerliste vollständige Konformität ab.
+
 ## Änderungen in 0.1.2
 
 CDP ergänzt die Playwright-Messungen um `blockedReason` und `corsErrorStatus`. Nur ein konkreter CORS-Nachweis führt zu „CORS blockiert“. Beide Quellen bleiben getrennt und können denselben Request abbilden; im HTML hilft der Quellenfilter. Redirect-Schritte sind über `previousId`/`nextId` innerhalb derselben Quelle verbunden und erhalten Methoden und Statuscodes. Es werden keine vollständigen Request-Header oder Bodies gespeichert.
@@ -24,7 +42,7 @@ Ein Projekt von kanka.dev zur Bestandsaufnahme externer Website-Ressourcen als G
 
 ## Projektstand
 
-Version 0.1.2 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
+Version 0.2.0 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
 
 Der verbindliche Funktionsumfang, die vorgesehenen Umsetzungsschritte und deren Abnahmekriterien stehen in [plan.md](plan.md). Geplante Funktionen sind dort beschrieben; diese Datei dokumentiert den tatsächlich erreichten Stand.
 
@@ -67,7 +85,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD '.git/browsers'
 Das Image lässt sich direkt aus diesem privaten Checkout bauen. Es läuft als Benutzer `node`, enthält Chromium und benötigt das mitgelieferte Seccomp-Profil für Benutzer-Namensräume. Es benötigt weder `--privileged` noch eine deaktivierte Browser-Sandbox.
 
 ```sh
-docker build --target runtime -t kanka-web-audit:0.1.2 .
+docker build --target runtime -t kanka-web-audit:0.2.0 .
 ```
 
 PowerShell:
@@ -77,7 +95,7 @@ New-Item -ItemType Directory -Force reports | Out-Null
 docker run --rm --init --shm-size=1g `
   --security-opt seccomp=./docker/seccomp_profile.json `
   --mount "type=bind,source=$($PWD.Path)/reports,target=/reports" `
-  kanka-web-audit:0.1.2 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.2.0 https://site.test/ --output /reports/first-scan
 ```
 
 Linux/macOS-Shell:
@@ -88,12 +106,12 @@ docker run --rm --init --shm-size=1g \
   --user "$(id -u):$(id -g)" \
   --security-opt seccomp=./docker/seccomp_profile.json \
   --mount "type=bind,source=$PWD/reports,target=/reports" \
-  kanka-web-audit:0.1.2 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.2.0 https://site.test/ --output /reports/first-scan
 ```
 
 Der Ausgabeordner muss für den Containerbenutzer beschreibbar sein. Getestet wurde Docker Desktop mit Linux/amd64-Containern; andere Betriebssysteme und Architekturen sind noch nicht abgenommen. Auf Hosts mit zusätzlichen Beschränkungen für Benutzer-Namensräume muss die Hostkonfiguration geprüft werden. Herkunft und Lizenz des Profils stehen in [docker/readme.md](docker/readme.md).
 
-Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.1.2` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
+Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.2.0` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
 
 ## Scan-Einstellungen
 

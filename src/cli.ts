@@ -10,7 +10,7 @@ async function main() {
     help:{type:'boolean',short:'h'},version:{type:'boolean'},profile:{type:'string'},output:{type:'string',short:'o'},
     'max-pages':{type:'string'},'max-duration':{type:'string'},concurrency:{type:'string'},'wait-ms':{type:'string'},
     sitemap:{type:'string',multiple:true},origin:{type:'string',multiple:true},start:{type:'string',multiple:true},
-    mode:{type:'string'},'ignore-robots':{type:'boolean'},'full-urls':{type:'boolean'},'browser-profile':{type:'string'}
+    mode:{type:'string'},'ignore-robots':{type:'boolean'},'full-urls':{type:'boolean'},'browser-profile':{type:'string'},audit:{type:'string'}
   }});
   if(values.version){console.log(VERSION);return;}
   if(values.help){console.log(`kanka-web-audit <URL> [options]
@@ -25,6 +25,7 @@ async function main() {
   --origin <URL>          Additional allowed page origin; repeatable
   --start <URL>           Additional start page; repeatable
   --mode <mode>          enforce, inventory or both (default enforce)
+  --audit <kind>         resources (default) or thorough (validated accept/reject profile)
   --browser-profile <p>  headless (default) or headed; use separate output folders
   --ignore-robots         Explicitly ignore robots.txt crawl rules
   --full-urls             Keep query values in private local reports
@@ -40,6 +41,7 @@ Only inspect targets and interactions you are authorized to test.`);return;}
   }
   if(positionals[0])input.target=positionals[0];
   if(values.output)input.output=values.output;
+  if(values.audit)input.audit=values.audit;
   if(values['browser-profile'])input.browserProfile=values['browser-profile'];
   for(const [flag,key] of [['max-pages','maxPages'],['concurrency','concurrency'],['wait-ms','waitMs']] as const)
     if(values[flag]!==undefined)input[key]=Number(values[flag]);

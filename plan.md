@@ -2,9 +2,22 @@
 
 Stand: 2026-09-12
 
-Status: Version 0.1.2 implementiert; optionale Distribution ausstehend
+Status: Version 0.2.0 implementiert; optionale Distribution ausstehend
 
 Verantwortlich: kanka.dev
+
+## Gründlicher Audit 0.2.0
+
+Für gelegentliche Bestandsprüfungen wird der gründliche Ablauf bevorzugt. Er dient der CSP-Diagnose und dem Auffinden externer Ressourcen für die manuelle Einordnung in ein beliebiges Consent-System. Eine bestimmte CMP ist keine Voraussetzung.
+
+- [x] Profilmodus `thorough` mit explizitem Akzeptieren und Ablehnen, unterschiedlichen bestätigten Zielzuständen und beiden CSP-Modi.
+- [x] Verpflichtende Vorprüfung aller Kombinationen auf der Startseite vor dem langen Crawl. Bei fehlgeschlagener Bestätigung entstehen nachvollziehbare Teilergebnisse statt einer vorgetäuschten Consent-Abnahme.
+- [x] Vor und nach der Entscheidung beobachten und per Mausrad scrollen; tatsächliche Bewegung des Hauptdokuments protokollieren.
+- [x] Bereits vorhandene Zielzustände, mehrdeutige Bestätigungen und auf Unterseiten verlorene Zustände kennzeichnen.
+- [x] Vorabmessungen und Crawl im Bericht trennen; reine Ressourceninventare ausdrücklich als unvollständig hinsichtlich Consent kennzeichnen.
+- [x] Zwölf Testgruppen unter Windows und Linux/amd64 bestanden, einschließlich Scroll-Sperre, automatischer Freigabe und verweigertem Crawl nach fehlgeschlagener Vorprüfung. Runtime-Image 0.2.0 gebaut und Versionsausgabe geprüft.
+
+Ein reproduzierbarer Vergleich für menschliche Besucher aus einer bestimmten Region setzt einen tatsächlich passenden Netzausgang und geprüfte Website-Profile voraus. Sichtbarer Browserbetrieb allein garantiert dies nicht. Produktive Geo-/Bot-Einstellungen werden nicht automatisch verändert. Aktuelle Zielseiten oder deren individuelle Selektoren gehören nicht in die öffentliche Beispieldokumentation.
 
 ## Nachbesserung 0.1.2
 

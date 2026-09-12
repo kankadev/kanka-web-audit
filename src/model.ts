@@ -2,10 +2,13 @@ export type Mode = 'enforce' | 'inventory';
 export interface Action { selector: string; confirm: string; }
 export interface Scenario {
   name: string;
+  decision?: 'accept' | 'reject';
+  expectedState?: string;
   consent?: Action;
   actions?: Action[];
 }
 export interface Options {
+  audit: 'resources' | 'thorough';
   browserProfile: 'headless' | 'headed';
   consentStates: {name: string; selector: string}[];
   target: string; output: string; origins: string[]; ownOrigins: string[];
@@ -28,12 +31,14 @@ export interface Observation {
   redirectAt?: string;
 }
 export interface Visit {
+  purpose?: 'preflight' | 'crawl';
   id: string; url: string; finalUrl?: string; mode: Mode; scenario: string;
   state: 'running' | 'complete' | 'failed' | 'interrupted'; status?: number;
   scenarioConfirmed: boolean; actions: { selector: string; confirmed: boolean }[];
   issues: string[]; started: string; elapsedMs?: number;
   browser?: {version: string; userAgent: string; webdriver: boolean; profile: string};
   contextCloseStarted?: string; contextClosed?: string;
+  scroll?: {phase: string; requested: number; moved: number}[];
   consentObservations?: {phase: string; timestamp: string; visibleStates: string[]; state: 'observed' | 'unknown' | 'ambiguous'}[];
 }
 export interface PageEntry { url: string; depth: number; source: string; state: string; reason?: string; }

@@ -31,6 +31,7 @@ export async function fixture() {
     if(path==='/sw.js')return send(res,`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(fetch('${external}/worker-fetch')));`,'text/javascript');
     if(path==='/sw')return send(res,`<script>navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(r=>r.active.postMessage('fetch'))</script>`);
     if(path==='/pending-page')return send(res,`<script>fetch('${external}/pending').then(r=>r.text()).catch(()=>{})</script>`);
+    if(path==='/consent-lock')return send(res,`<style>body{overflow:hidden}</style><button id="accept" onclick="choose('accepted')">Accept</button><button id="reject" onclick="choose('rejected')">Reject</button><p id="state"></p><div style="height:3000px"></div><script>function choose(state){document.querySelector('#state').className=state;document.querySelector('#state').textContent=state;document.body.style.overflow='auto';fetch('${external}/'+state)}</script>`);
     if(path==='/diagnostics')return send(res,`<div id="state"></div><script>
       if(navigator.webdriver)document.querySelector('#state').className='auto-accepted';
       fetch('${external}/cors-denied').catch(()=>{});

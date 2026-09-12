@@ -5,10 +5,10 @@ import { observeNetwork } from './network.js';
 import type { Options, Mode, Scenario, Visit, Observation, Action } from './model.js';
 
 export async function visit(browser: Browser, url: string, mode: Mode, scenario: Scenario,
-  options: Options, signal: AbortSignal, records: Observation[], visits: Visit[]): Promise<string[]> {
+  options: Options, signal: AbortSignal, records: Observation[], visits: Visit[], purpose: Visit['purpose']='crawl'): Promise<string[]> {
   const start = Date.now();
   const item: Visit = { id: randomUUID(),url,mode,scenario:scenario.name,state:'running',
-    scenarioConfirmed: !scenario.consent,actions:[],issues:[],started:new Date().toISOString() };
+    purpose,scenarioConfirmed: !scenario.consent,actions:[],issues:[],started:new Date().toISOString() };
   visits.push(item);
   const context = await browser.newContext({ bypassCSP: mode === 'inventory', acceptDownloads:false,
     viewport:{width:1440,height:1000}, serviceWorkers:'allow' });
@@ -103,11 +103,25 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
         try {if(await page!.locator(state.selector).first().isVisible())visibleStates.push(state.name);}
         catch {item.issues.push('Consent state selector could not be evaluated.');}
       }
-      (item.consentObservations??=[]).push({phase,timestamp:new Date().toISOString(),visibleStates,
-        state:visibleStates.length===1?'observed':visibleStates.length>1?'ambiguous':'unknown'});
+      const observation={phase,timestamp:new Date().toISOString(),visibleStates,
+        state:(visibleStates.length===1?'observed':visibleStates.length>1?'ambiguous':'unknown') as 'observed'|'ambiguous'|'unknown'};
+      (item.consentObservations??=[]).push(observation);return observation;
     };
     await delay();
-    await observeConsent('before-actions');
+    const before=await observeConsent('before-actions');
+    const scroll=async (scrollPhase:string)=>{
+      const result={phase:scrollPhase,requested:options.scrollSteps,moved:0};(item.scroll??=[]).push(result);
+      for(let i=0;i<options.scrollSteps;i++) {
+        // Wheel input respects modal scroll locks instead of forcing the document to move.
+        const beforeY=await page!.evaluate(()=>window.scrollY);
+        await page!.mouse.move(1000,700);await page!.mouse.wheel(0,800);await page!.waitForTimeout(200);
+        if(await page!.evaluate(()=>window.scrollY)!==beforeY)result.moved++;
+      }
+    };
+    if(options.audit==='thorough') {
+      phase='before-consent-scroll';await scroll(phase);await delay();
+      await page.mouse.wheel(0,-100000);await page.waitForTimeout(200);
+    }
     const act=async (a:Action, nextPhase:string) => {
       const result={selector:a.selector,confirmed:false}; item.actions.push(result);
       phase=nextPhase;
@@ -117,18 +131,25 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
       await delay();
     };
     if(scenario.consent) {
-      try { await act(scenario.consent,'consent'); item.scenarioConfirmed=true; phase='after-consent'; }
+      try {
+        if(scenario.expectedState&&before.visibleStates.includes(scenario.expectedState))throw new Error('State already present');
+        if(options.audit==='thorough'&&await page.locator(scenario.consent.confirm).isVisible())throw new Error('Confirmation already visible');
+        await act(scenario.consent,'consent');
+        const after=await observeConsent('after-consent');
+        if(scenario.expectedState&&(after.state!=='observed'||after.visibleStates[0]!==scenario.expectedState))throw new Error('Expected consent state not observed');
+        item.scenarioConfirmed=true;phase='after-consent';
+      }
       catch { item.issues.push('Consent action or visible confirmation failed.'); phase='unconfirmed-consent'; }
     }
     if(item.scenarioConfirmed) for(const a of scenario.actions ?? []) {
       try { await act(a,'interaction'); } catch { item.issues.push('Configured interaction or confirmation failed.'); }
     }
-    for(let i=0;i<options.scrollSteps;i++) {
-      await page.evaluate(() => window.scrollBy(0,Math.max(window.innerHeight * .8,300)));
-      await page.waitForTimeout(200);
-    }
+    await scroll(phase);
     await delay();
-    await observeConsent('after-actions');
+    const finalConsent=await observeConsent('after-actions');
+    if(scenario.expectedState&&(finalConsent.state!=='observed'||finalConsent.visibleStates[0]!==scenario.expectedState)) {
+      item.scenarioConfirmed=false;item.issues.push('Expected consent state missing or ambiguous after interactions.');
+    }
     for(const frame of page.frames()) {
       try {
         const refs=await frame.evaluate(() => {

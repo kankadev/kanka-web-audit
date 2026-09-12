@@ -40,14 +40,14 @@ const $=id=>document.getElementById(id);
 function cell(row,text){const td=document.createElement('td');td.textContent=text??'';row.append(td);return td;}
 ${outcome.toString()}
 function fill(id,values){for(const v of [...new Set(values)].sort()){const opt=document.createElement('option');opt.value=v;opt.textContent=v;$(id).append(opt);}}
-fill('source',data.observations.map(r=>r.source));fill('type',data.observations.map(r=>r.type));fill('scenario',data.visits.map(v=>v.scenario));
+fill('purpose',data.visits.map(v=>v.purpose??'crawl'));fill('source',data.observations.map(r=>r.source));fill('type',data.observations.map(r=>r.type));fill('scenario',data.visits.map(v=>v.scenario));
 fill('mode',data.visits.map(v=>v.mode));fill('state',data.observations.map(outcome));
 let visibleLimit=250;
 function render(){
  const query=$('search').value.toLowerCase();
  const records=data.observations.filter(r=>{const v=byPage.get(r.pageId);return (!$('external').checked||r.external)&&
    ($('hints').checked || !(r.type==='navigation-link'||(r.type.startsWith('link:')&&!/stylesheet|preload|modulepreload/.test(r.type))))&&
-   (!$('source').value||r.source===$('source').value)&&(!$('type').value||r.type===$('type').value)&&(!$('scenario').value||v.scenario===$('scenario').value)&&
+   (!$('purpose').value||(v.purpose??'crawl')===$('purpose').value)&&(!$('source').value||r.source===$('source').value)&&(!$('type').value||r.type===$('type').value)&&(!$('scenario').value||v.scenario===$('scenario').value)&&
    (!$('mode').value||v.mode===$('mode').value)&&(!$('state').value||outcome(r)===$('state').value)&&
    (r.url+' '+v.url+' '+r.origin).toLowerCase().includes(query);});
  const groups=new Map();
@@ -76,11 +76,11 @@ $('more').addEventListener('click',()=>{visibleLimit+=250;render();});
 $('status').textContent=({complete:'Abgeschlossen',partial:'Teilergebnis',aborted:'Abgebrochen',failed:'Fehlgeschlagen',running:'Läuft'})[data.state];
 $('status').style.background=data.state==='complete'?'#c9efde':'#ffe3ad';
 $('overview').textContent=data.pages.filter(p=>p.state==='visited').length+' / '+data.pages.length+' Seiten bearbeitet · '+data.visits.length+' Besuche · '+data.observations.filter(r=>r.external).length+' externe Beobachtungen';
-$('target').textContent=data.options.target;
+$('target').textContent=data.options.target+' | '+(data.options.audit==='thorough'?'Gründlicher Consent-/CSP-Audit':'Ressourceninventar – kein vollständiger Consent-Audit');
 $('timing').textContent=data.started+' — '+(data.ended||'Zwischenstand');
 for(const text of [...data.issues,...data.limitations]){const li=document.createElement('li');li.textContent=text;$('issues').append(li);}
 for(const p of data.pages){const tr=document.createElement('tr');cell(tr,p.url);cell(tr,p.state);cell(tr,p.reason||p.source);$('pages').append(tr);}
-for(const v of data.visits){const li=document.createElement('li');li.textContent=v.url+' | '+v.mode+' / '+v.scenario+' | Browser: '+JSON.stringify(v.browser??'nicht erfasst')+' | Consent-Beobachtungen: '+JSON.stringify(v.consentObservations??'nicht erfasst')+' | context.close: '+(v.contextCloseStarted??'nicht erfasst')+' → '+(v.contextClosed??'nicht erfasst');$('visits').append(li);}
+for(const v of data.visits){const li=document.createElement('li');li.textContent=v.url+' | '+(v.purpose??'crawl')+' | '+v.mode+' / '+v.scenario+' | Browser: '+JSON.stringify(v.browser??'nicht erfasst')+' | Consent-Beobachtungen: '+JSON.stringify(v.consentObservations??'nicht erfasst')+' | Scroll: '+JSON.stringify(v.scroll??'nicht erfasst')+' | context.close: '+(v.contextCloseStarted??'nicht erfasst')+' → '+(v.contextClosed??'nicht erfasst');$('visits').append(li);}
 for(const v of data.visits.filter(v=>v.issues.length||!v.scenarioConfirmed)){const li=document.createElement('li');li.textContent=v.url+' | '+v.scenario+' / '+v.mode+': '+v.issues.join('; ');$('issues').append(li);}
 render();
 `;
@@ -93,7 +93,7 @@ export function html(result: unknown): string {
 </style><header><small>kanka.dev / Ressourceninventar</small><h1>Web Audit <span id="status" class="badge"></span></h1><p id="target"></p><p id="overview"></p><small id="timing"></small></header>
 <main><section><h2>Ressourcen</h2><div class="bar"><label>Suche<input id="search" type="search" placeholder="Ressource oder Fundseite"></label>
 <label>Gruppierung<select id="group"><option value="origin">Origin</option><option value="url">Exakte URL</option></select></label>
-<label>Quelle<select id="source"><option value="">Alle</option></select></label><label>Typ<select id="type"><option value="">Alle</option></select></label><label>Szenario<select id="scenario"><option value="">Alle</option></select></label>
+<label>Abschnitt<select id="purpose"><option value="">Alle</option></select></label><label>Quelle<select id="source"><option value="">Alle</option></select></label><label>Typ<select id="type"><option value="">Alle</option></select></label><label>Szenario<select id="scenario"><option value="">Alle</option></select></label>
 <label>CSP-Modus<select id="mode"><option value="">Alle</option></select></label><label>Status<select id="state"><option value="">Alle</option></select></label>
 <label class="check"><input id="external" type="checkbox" checked>Nur externe Ressourcen</label><label class="check"><input id="hints" type="checkbox">Auch Links und Ladehinweise</label></div><p id="count" class="muted"></p>
 <div class="scroll"><table><thead><tr><th>Origin / URL · aufklappen für Fundstellen</th><th>Typen</th><th>Seiten</th><th>Status</th></tr></thead><tbody id="results"></tbody></table></div><button id="more" hidden>Weitere 250 Gruppen anzeigen</button></section>

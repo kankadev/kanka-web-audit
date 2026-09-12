@@ -68,6 +68,30 @@ test('unfinished response is marked before closing the browser and exported cons
 });
 
 const output=()=>mkdtemp(join(process.env.KWA_TEST_OUTPUT ?? tmpdir(),'kwa-test-'));
+
+test('thorough audit verifies both decisions before crawling and respects scroll locks',async()=>{
+  const f=await fixture();try{
+    const settings={audit:'thorough',maxPages:1,waitMs:100,scrollSteps:1,timeoutMs:500,
+      consentStates:[{name:'accepted',selector:'.accepted'},{name:'rejected',selector:'.rejected'}],
+      scenarios:[{name:'accepted',decision:'accept',expectedState:'accepted',consent:{selector:'#accept',confirm:'.accepted'}},
+        {name:'rejected',decision:'reject',expectedState:'rejected',consent:{selector:'#reject',confirm:'.rejected'}}]};
+    const r=await scan(config({...settings,target:f.origin+'/consent-lock',output:await output()}),undefined,()=>{});
+    assert.equal(r.visits.filter(v=>v.purpose==='preflight').length,4);
+    assert.equal(r.visits.filter(v=>v.purpose==='crawl').length,4);
+    assert.ok(r.visits.every(v=>v.scenarioConfirmed));
+    assert.ok(r.pages.some(p=>p.url.endsWith('/consent-lock')&&p.state==='visited'));
+    assert.ok(r.visits.every(v=>v.scroll?.[0].moved===0));
+    assert.ok(r.visits.every(v=>v.scroll?.[1].moved===1));
+    const failed=await scan(config({...settings,target:f.origin+'/diagnostics',output:await output(),scrollSteps:0,
+      consentStates:[{name:'accepted',selector:'.auto-accepted'},{name:'rejected',selector:'.rejected'}],
+      scenarios:[{name:'accepted',decision:'accept',expectedState:'accepted',consent:{selector:'#accept',confirm:'.auto-accepted'}},settings.scenarios[1]]}),undefined,()=>{});
+    assert.equal(failed.state,'partial');assert.ok(failed.issues.some(i=>i.includes('preflight')));
+    assert.ok(failed.visits.every(v=>v.purpose==='preflight'));
+    assert.ok(!failed.pages.some(p=>p.state==='visited'));
+    assert.throws(()=>config({...settings,target:f.origin,scenarios:[settings.scenarios[0]]}),/accept and reject/);
+    assert.throws(()=>config({...settings,target:f.origin,modes:['inventory']}),/both CSP/);
+  }finally{await f.close();}
+});
 test('URL/config validation and CSV formula escaping',()=>{
   assert.equal(normalizeUrl('https://site.test:443/a?q=1#b'),'https://site.test/a?q=1');
   assert.equal(normalizeUrl('https://user:pass@site.test'),undefined);
