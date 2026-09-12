@@ -4,7 +4,7 @@ Stand: 2026-09-12
 
 Status: Planung; Implementierung noch nicht begonnen
 
-Verantwortlich: KankaDev
+Verantwortlich: kanka.dev
 
 ## 1. Ziel
 
@@ -219,13 +219,13 @@ Ein erster realer Scan erfolgt nur gegen ein bewusst ausgewähltes eigenes Ziel.
 ### Phase 0 – Projektgrundlage
 
 - [x] Privates Repository anlegen.
-- [x] Lokale Commit-Identität auf Akay mit der KankaDev-Mailadresse setzen.
+- [x] Lokale Commit-Identität auf Akay mit der Mailadresse von kanka.dev setzen.
 - [x] Plan und faktenbasierte Readme vorbereiten.
 - [x] Dokumentation committen, übertragen und Remote-Stand prüfen.
 
 Abnahme: Beide Dokumente liegen im privaten Repository; Autor und Committer stimmen.
 
-Nachweis vom 2026-09-12: Initialer Dokumentationscommit `66b235f` nach `main` übertragen; Remote-SHA stimmt mit dem lokalen Commit überein. Autor und Committer sind jeweils Akay mit der konfigurierten KankaDev-Mailadresse. Der vorgelagerte Git-Whitespace-Check war erfolgreich. Anwendungstests sind in dieser Phase noch nicht vorhanden.
+Nachweis vom 2026-09-12: Initialer Dokumentationscommit `66b235f` nach `main` übertragen; Remote-SHA stimmt mit dem lokalen Commit überein. Autor und Committer sind jeweils Akay mit der konfigurierten Mailadresse von kanka.dev. Der vorgelagerte Git-Whitespace-Check war erfolgreich. Anwendungstests sind in dieser Phase noch nicht vorhanden.
 
 ### Phase 1 – Reproduzierbarer technischer Kern
 
@@ -279,8 +279,12 @@ Abnahme: Der dokumentierte Startbefehl funktioniert in der getesteten Umgebung u
 
 ## 15. Arbeitsregeln und Pflege
 
+Die verbindliche Firmenschreibweise ist `kanka.dev`. Abweichende Schreibweisen aus Spracheingaben ändern diese Vorgabe nicht. Technische Bezeichner wie der Repository-Name bleiben davon unberührt.
+
+Seit 2026-09-12 ist ein lokaler Pre-Commit-Hook mit Gitleaks eingerichtet und mit synthetischen Fixtures geprüft. Vorgehen und gezielte Ausnahmen sind in `readme.md` dokumentiert. Diese Prüfung ist keine abgeschlossene Abnahme des Website-Scanners. Bei neuen Klonen muss der Hook separat aktiviert werden; API-Commits führen ihn nicht aus.
+
 `plan.md` bleibt die einzige allgemeine Aufgabenliste. Nach jeder abgeschlossenen Phase werden Status und Abnahmebelege aktualisiert. Dauerhafte Bedieninformationen wandern in `readme.md`; zusätzliche Fachdetails können später unter `docs/` stehen.
 
-Commits verwenden Akay und die konfigurierte KankaDev-Mailadresse als Autor und Committer. Die lokale Git-Konfiguration wird vor dem ersten Commit geprüft. Automatisch erzeugte Web-/API-Commits werden nur verwendet, wenn ihre Identität den Vorgaben entspricht. Commit-Nachrichten nennen die tatsächliche Änderung und enthalten keine Werkzeug-Zuschreibungen.
+Commits verwenden Akay und die konfigurierte Mailadresse von kanka.dev als Autor und Committer. Die lokale Git-Konfiguration wird vor dem ersten Commit geprüft. Automatisch erzeugte Web-/API-Commits werden nur verwendet, wenn ihre Identität den Vorgaben entspricht. Commit-Nachrichten nennen die tatsächliche Änderung und enthalten keine Werkzeug-Zuschreibungen.
 
 Reale fremde Domains, Kundeninformationen, Scanprotokolle und Zugangsdaten werden vor jedem Commit ausgeschlossen. Dokumentation unterscheidet überprüfte Eigenschaften von Plänen und Annahmen. Ein Test wird nur dann als bestanden markiert, wenn er tatsächlich ausgeführt wurde und sein Ergebnis vorliegt.

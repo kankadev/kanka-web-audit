@@ -1,0 +1,36 @@
+#!/bin/sh
+set -u
+
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+local_scanner=$(git rev-parse --git-path tools/gitleaks/gitleaks.exe) || exit 1
+if [ -x "$local_scanner" ]; then
+    scanner=$local_scanner
+elif command -v gitleaks >/dev/null 2>&1; then
+    scanner=gitleaks
+else
+    echo 'Commit stopped: install Gitleaks before committing.' >&2
+    exit 1
+fi
+
+"$scanner" git --staged --pre-commit --redact=100 --no-banner --exit-code=42 .
+result=$?
+if [ "$result" -eq 0 ]; then
+    exit 0
+fi
+if [ "$result" -ne 42 ]; then
+    echo 'Commit stopped: Gitleaks failed. A finding override cannot bypass scanner errors.' >&2
+    exit 1
+fi
+
+tree=$(git write-tree) || exit 1
+if [ "${KANKA_COMMIT_ALLOW_TREE:-}" = "$tree" ] &&
+   printf '%s' "${KANKA_COMMIT_ALLOW_REASON:-}" | grep -q '[^[:space:]]'; then
+    echo 'Gitleaks findings explicitly accepted for this exact staged tree. Scan is NOT clean.' >&2
+    # Do not echo the reason: it may contain private information.
+    exit 0
+fi
+
+echo 'Commit stopped: Gitleaks found possible secrets.' >&2
+echo 'Remove the finding, approve a narrow test-value exception, or explicitly authorize this exact staged tree.' >&2
+exit 1
