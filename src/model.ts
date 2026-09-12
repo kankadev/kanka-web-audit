@@ -18,6 +18,8 @@ export interface Observation {
   frame?: string; method?: string; status?: number; complete?: boolean;
   failure?: string; redirectedFrom?: string; directive?: string; disposition?: string;
   timestamp: string;
+  responseAt?: string; finishedAt?: string; failedAt?: string;
+  observationEnd?: 'visit-end' | 'scan-abort';
 }
 export interface Visit {
   id: string; url: string; finalUrl?: string; mode: Mode; scenario: string;

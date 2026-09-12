@@ -1,10 +1,18 @@
 # Kanka Web Audit
 
+## Änderungen in 0.1.1
+
+HTML und CSV unterscheiden belegte CSP-Blockaden, HTTP-Fehler, Netzwerkfehler mit ungeklärter Ursache und Abbrüche nach empfangener Antwort. HTTP 204 mit anschließendem Abbruch wird nicht als CSP-Blockade interpretiert. CSP-Meldungen im Report-only-Modus bleiben gesondert sichtbar.
+
+Neue Scans speichern Antwort-, Abschluss- und Fehlerzeitpunkte. Vor dem Schließen des Browserkontexts noch offene Requests erhalten `observationEnd` (`visit-end` oder `scan-abort`). Das beschreibt die Beobachtungsgrenze, beweist aber nicht die Ursache eines späteren Abbruchs. Historische Reports ohne dieses Feld lassen sich nicht rückwirkend entsprechend zuordnen. Die Rohmeldungen bleiben erhalten.
+
+Eine Seite zählt nur dann als vollständig bearbeitet, wenn alle konfigurierten Kombinationen aus CSP-Modus und Szenario abgeschlossen wurden. Die zehn Testgruppen umfassen auch eine dauerhaft offene Antwort und die konsistente Darstellung in HTML und CSV.
+
 Ein Projekt von kanka.dev zur Bestandsaufnahme externer Website-Ressourcen als Grundlage für CSP- und Datenschutzprüfungen.
 
 ## Projektstand
 
-Version 0.1.0 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
+Version 0.1.1 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
 
 Der verbindliche Funktionsumfang, die vorgesehenen Umsetzungsschritte und deren Abnahmekriterien stehen in [plan.md](plan.md). Geplante Funktionen sind dort beschrieben; diese Datei dokumentiert den tatsächlich erreichten Stand.
 
@@ -47,7 +55,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD '.git/browsers'
 Das Image lässt sich direkt aus diesem privaten Checkout bauen. Es läuft als Benutzer `node`, enthält Chromium und benötigt das mitgelieferte Seccomp-Profil für Benutzer-Namensräume. Es benötigt weder `--privileged` noch eine deaktivierte Browser-Sandbox.
 
 ```sh
-docker build --target runtime -t kanka-web-audit:0.1.0 .
+docker build --target runtime -t kanka-web-audit:0.1.1 .
 ```
 
 PowerShell:
@@ -57,7 +65,7 @@ New-Item -ItemType Directory -Force reports | Out-Null
 docker run --rm --init --shm-size=1g `
   --security-opt seccomp=./docker/seccomp_profile.json `
   --mount "type=bind,source=$($PWD.Path)/reports,target=/reports" `
-  kanka-web-audit:0.1.0 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.1.1 https://site.test/ --output /reports/first-scan
 ```
 
 Linux/macOS-Shell:
@@ -68,12 +76,12 @@ docker run --rm --init --shm-size=1g \
   --user "$(id -u):$(id -g)" \
   --security-opt seccomp=./docker/seccomp_profile.json \
   --mount "type=bind,source=$PWD/reports,target=/reports" \
-  kanka-web-audit:0.1.0 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.1.1 https://site.test/ --output /reports/first-scan
 ```
 
 Der Ausgabeordner muss für den Containerbenutzer beschreibbar sein. Getestet wurde Docker Desktop mit Linux/amd64-Containern; andere Betriebssysteme und Architekturen sind noch nicht abgenommen. Auf Hosts mit zusätzlichen Beschränkungen für Benutzer-Namensräume muss die Hostkonfiguration geprüft werden. Herkunft und Lizenz des Profils stehen in [docker/readme.md](docker/readme.md).
 
-Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.1.0` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
+Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.1.1` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
 
 ## Scan-Einstellungen
 

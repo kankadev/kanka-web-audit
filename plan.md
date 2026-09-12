@@ -2,9 +2,21 @@
 
 Stand: 2026-09-12
 
-Status: Version 0.1.0 implementiert, lokal und in GitHub Actions abgenommen; optionale Distribution ausstehend
+Status: Version 0.1.1 implementiert und unter Windows und Linux getestet; optionale Distribution ausstehend
 
 Verantwortlich: kanka.dev
+
+## Nachbesserung 0.1.1
+
+Am 2026-09-12 wurden die aus der Live-Auswertung abgeleiteten Verbesserungen umgesetzt:
+
+- [x] Gemeinsame evidenzbasierte Statusklassifikation für HTML und CSV; CSP, HTTP-Fehler, Netzwerkfehler und Antwortabbrüche getrennt.
+- [x] Offene Requests vor dem Schließen des Browserkontexts markieren, ohne eine unbewiesene Ursache zu behaupten; Zeitpunkte und Rohfehler erhalten.
+- [x] Seiten nur nach Abschluss aller vorgesehenen Modi und Szenarien als vollständig bearbeiten zählen.
+- [x] Zehn Testgruppen unter Windows und Linux/amd64 bestanden, einschließlich offener Antwort, HTML-/CSV-Konsistenz und SIGTERM unter Linux.
+- [x] Runtime-Image `kanka-web-audit:0.1.1` gebaut. Bestehende lokale HTML-Berichte mit neuer Klassifikation gerendert und auf Browserfehler geprüft.
+
+Historische Daten erhalten keine nachträglich erfundenen Abbruchursachen. Ungeklärte Netzwerkfehler bleiben ungeklärt; für eine CORS-Diagnose können zusätzliche gezielte Browserprüfungen nötig sein.
 
 ## Abnahme der ersten Version
 

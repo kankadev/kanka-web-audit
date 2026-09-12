@@ -27,7 +27,10 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
       type,source,phase,timestamp:new Date().toISOString(),...extra};
     records.push(observation); recordCount++; return observation;
   };
-  const abort = () => { void context.close().catch(() => {}); };
+  const markOpen = (reason: 'visit-end' | 'scan-abort') => {
+    for(const r of byRequest.values()) if(r.complete===undefined && !r.failure) r.observationEnd=reason;
+  };
+  const abort = () => { markOpen('scan-abort'); void context.close().catch(() => {}); };
   signal.addEventListener('abort',abort,{once:true});
   const frameOf = (request: Request) => { try { return request.frame().url(); } catch { return undefined; } };
   context.on('request',request => {
@@ -35,10 +38,10 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
       method:request.method(),frame:frameOf(request),redirectedFrom:request.redirectedFrom()?.url() });
     if (record) byRequest.set(request,record);
   });
-  context.on('response',response => { const r=byRequest.get(response.request()); if(r) r.status=response.status(); });
-  context.on('requestfinished',request => { const r=byRequest.get(request); if(r) r.complete=true; });
+  context.on('response',response => { const r=byRequest.get(response.request()); if(r) {r.status=response.status();r.responseAt=new Date().toISOString();} });
+  context.on('requestfinished',request => { const r=byRequest.get(request); if(r) {r.complete=true;r.finishedAt=new Date().toISOString();delete r.observationEnd;} });
   context.on('requestfailed',request => {
-    const r=byRequest.get(request); if(r) { r.complete=false; r.failure=request.failure()?.errorText ?? 'Network failure'; }
+    const r=byRequest.get(request); if(r) { r.complete=false; r.failure=request.failure()?.errorText ?? 'Network failure';r.failedAt=new Date().toISOString(); }
   });
   await context.exposeBinding('__kwaCsp',({frame},data:{blockedURI:string;effectiveDirective:string;disposition:string}) => {
     add(data.blockedURI,'csp','csp',{frame:frame.url(),directive:data.effectiveDirective,disposition:data.disposition,
@@ -131,6 +134,7 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
     item.state=signal.aborted ? 'interrupted':'failed';
     item.issues.push(signal.aborted ? 'Visit interrupted.':'Navigation or browser observation failed.');
   } finally {
+    markOpen(signal.aborted?'scan-abort':'visit-end');
     for(const r of records.filter(r=>r.pageId===item.id))r.external=r.origin!==new URL(item.finalUrl ?? url).origin;
     item.elapsedMs=Date.now()-start;
     signal.removeEventListener('abort',abort);

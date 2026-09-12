@@ -15,6 +15,7 @@ export async function fixture() {
     if(path==='/inner')return send(res,`<img src="${external}/inner.svg">`);
     if(path==='/missing')return send(res,'missing','text/plain',404);
     if(path==='/broken'){req.socket.destroy();return;}
+    if(path==='/pending'){res.writeHead(200,{'Access-Control-Allow-Origin':'*'});res.write('pending');return;}
     if(path.endsWith('.svg'))return send(res,'<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>','image/svg+xml');
     return send(res,'fixture response','text/plain');
   });
@@ -26,6 +27,7 @@ export async function fixture() {
     if(path==='/unsafe.xml')return send(res,'<!DOCTYPE x [<!ENTITY t SYSTEM "file:///etc/passwd">]><urlset/>','application/xml');
     if(path==='/sw.js')return send(res,`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(fetch('${external}/worker-fetch')));`,'text/javascript');
     if(path==='/sw')return send(res,`<script>navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(r=>r.active.postMessage('fetch'))</script>`);
+    if(path==='/pending-page')return send(res,`<script>fetch('${external}/pending').then(r=>r.text()).catch(()=>{})</script>`);
     if(path==='/csp'){
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src *; img-src *; style-src * 'unsafe-inline'");
       return send(res,`<script src="${external}/entry.js"></script>`);

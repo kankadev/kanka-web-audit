@@ -12,7 +12,7 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
   const timer=setTimeout(()=>{timedOut=true;controller.abort();},options.maxDurationMs);
   const abort=()=>controller.abort(); signal?.addEventListener('abort',abort,{once:true});
   if(signal?.aborted) controller.abort();
-  const state: Result={schemaVersion:1,toolVersion:'0.1.0',started:new Date().toISOString(),state:'running',options,pages:[],visits:[],observations:[],issues:[],limitations:[
+  const state: Result={schemaVersion:1,toolVersion:'0.1.1',started:new Date().toISOString(),state:'running',options,pages:[],visits:[],observations:[],issues:[],limitations:[
     'Erfasst werden entdeckte Seiten und konfigurierte Interaktionen. Das Ergebnis ist keine rechtliche Konformitätsbewertung.',
     'Jede Seite und jedes Szenario startet mit einem frischen Browserkontext. Login-Sitzungen und seitenübergreifender Consent werden nicht übernommen.',
     'Nicht ausgewählte srcset-Varianten, beliebige JavaScript-URLs, Hash-Routen und geschlossene Popups werden nicht vollständig erfasst.',
@@ -57,7 +57,7 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
           } catch {state.issues.push('Browser visit setup failed.');}
         }
         const visits=state.visits.filter(v=>v.url===p.url);
-        p.state=visits.length && visits.every(v=>v.state==='complete')?'visited':'failed';
+        p.state=visits.length===options.modes.length*options.scenarios.length && visits.every(v=>v.state==='complete')?'visited':'failed';
         progress(`Pages processed: ${processed}; discovered: ${state.pages.length}; observations: ${state.observations.length}`);
         await save(state);
       }));

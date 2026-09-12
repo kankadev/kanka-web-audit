@@ -11,6 +11,37 @@ import { config, normalizeUrl } from '../src/config.js';
 import { scan } from '../src/scanner.js';
 import { csvCell, html, redactor } from '../src/report.js';
 import { fixture } from './fixtures/server.js';
+import { outcome } from '../src/outcome.js';
+import type { Observation } from '../src/model.js';
+
+test('outcomes distinguish CSP, HTTP, aborts and unconfirmed network causes',()=>{
+  const record={source:'network',type:'fetch'} as Observation;
+  assert.equal(outcome({...record,status:204,failure:'net::ERR_ABORTED'}),'Antwort erhalten, danach abgebrochen');
+  assert.equal(outcome({...record,status:404,failure:'net::ERR_ABORTED'}),'HTTP-Fehler');
+  assert.equal(outcome({...record,failure:'net::ERR_FAILED'}),'Netzwerkfehler (Ursache offen)');
+  assert.equal(outcome({...record,failure:'csp'}),'CSP blockiert');
+  assert.equal(outcome({...record,source:'csp',disposition:'report'}),'CSP-Meldung (nur Bericht)');
+  assert.equal(outcome({...record,status:204,complete:true}),'Übertragen');
+  assert.equal(outcome({...record,failure:'net::ERR_ABORTED',observationEnd:'visit-end'}),'Bei Scan-Ende offen');
+});
+
+test('unfinished response is marked before closing the browser and exported consistently',async()=>{
+  const f=await fixture();try {
+    const dir=await output();
+    const r=await scan(config({target:f.origin+'/pending-page',output:dir,maxPages:1,waitMs:150,scrollSteps:0}),undefined,()=>{});
+    const pending=r.observations.find(o=>o.url.endsWith('/pending')&&o.source==='network');
+    assert.ok(pending);assert.equal(pending.status,200);assert.ok(pending.responseAt);
+    assert.equal(pending.observationEnd,'visit-end');
+    assert.equal(outcome(pending),'Bei Scan-Ende offen');
+    assert.ok((await readFile(join(dir,'resources.csv'),'utf8')).includes('Bei Scan-Ende offen'));
+    const browser=await chromium.launch({chromiumSandbox:true});try {
+      const page=await browser.newPage();await page.goto(pathToFileURL(join(dir,'report.html')).href);
+      await page.locator('#state').selectOption('Bei Scan-Ende offen');
+      assert.ok(await page.locator('#results tr').count()>0);
+      assert.ok((await page.locator('#results').innerText()).includes('Bei Scan-Ende offen'));
+    }finally{await browser.close();}
+  }finally{await f.close();}
+});
 
 const output=()=>mkdtemp(join(process.env.KWA_TEST_OUTPUT ?? tmpdir(),'kwa-test-'));
 test('URL/config validation and CSV formula escaping',()=>{

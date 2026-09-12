@@ -2,6 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { mkdir, writeFile, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Result } from './model.js';
+import { outcome } from './outcome.js';
 
 export function redactor(full: boolean, key = randomBytes(32)) {
   const url = (raw: string): string => {
@@ -37,7 +38,7 @@ const data=JSON.parse(document.getElementById('data').textContent);
 const byPage=new Map(data.visits.map(v=>[v.id,v]));
 const $=id=>document.getElementById(id);
 function cell(row,text){const td=document.createElement('td');td.textContent=text??'';row.append(td);return td;}
-function outcome(r){return r.failure?'Fehler / blockiert':r.status>=400?'HTTP-Fehler':r.complete?'Übertragen':r.source==='dom'?'Referenziert':r.source==='csp'?'CSP-Meldung':'Versucht / offen';}
+${outcome.toString()}
 function fill(id,values){for(const v of [...new Set(values)].sort()){const opt=document.createElement('option');opt.value=v;opt.textContent=v;$(id).append(opt);}}
 fill('type',data.observations.map(r=>r.type));fill('scenario',data.visits.map(v=>v.scenario));
 fill('mode',data.visits.map(v=>v.mode));fill('state',data.observations.map(outcome));
@@ -61,7 +62,8 @@ function render(){
   details.addEventListener('toggle',()=>{if(!details.open||list.childElementCount)return;
   for(const r of rs){const v=byPage.get(r.pageId);const p=document.createElement('p');
     p.textContent=v.url+' | '+v.scenario+' / '+v.mode+' | '+r.phase+' | '+r.type+' | '+outcome(r)+
-      (r.status?' '+r.status:'')+(r.directive?' | '+r.directive:'')+(r.failure?' | '+r.failure:'')+' | '+r.url;
+      (r.status?' '+r.status:'')+(r.directive?' | '+r.directive:'')+(r.failure?' | '+r.failure:'')+(r.observationEnd?' | '+r.observationEnd:'')+' | '+r.url+
+      ' | Start: '+r.timestamp+(r.responseAt?' | Antwort: '+r.responseAt:'')+(r.finishedAt?' | Ende: '+r.finishedAt:'')+(r.failedAt?' | Fehler: '+r.failedAt:'');
     list.append(p);} });
   details.append(list);cell(tr,'').append(details);
   cell(tr,[...new Set(rs.map(r=>r.type))].join(', '));
@@ -94,7 +96,7 @@ export function html(result: unknown): string {
 <label>CSP-Modus<select id="mode"><option value="">Alle</option></select></label><label>Status<select id="state"><option value="">Alle</option></select></label>
 <label class="check"><input id="external" type="checkbox" checked>Nur externe Ressourcen</label><label class="check"><input id="hints" type="checkbox">Auch Links und Ladehinweise</label></div><p id="count" class="muted"></p>
 <div class="scroll"><table><thead><tr><th>Origin / URL · aufklappen für Fundstellen</th><th>Typen</th><th>Seiten</th><th>Status</th></tr></thead><tbody id="results"></tbody></table></div><button id="more" hidden>Weitere 250 Gruppen anzeigen</button></section>
-<section><h2>Abdeckung und Grenzen</h2><p>Ein Inventar ist keine rechtliche Konformitätsbewertung. „Übertragen“ bestätigt keine erfolgreiche Ausführung. Query-Werte sind standardmäßig maskiert.</p><ul id="issues"></ul></section>
+<section><h2>Abdeckung und Grenzen</h2><p>CSP blockiert bedeutet eine belegte CSP-Blockade. HTTP-Fehler und Netzwerkabbrüche werden gesondert ausgewiesen. Ein Abbruch nach einer Antwort (auch HTTP 204) beweist keine CSP-Blockade. Bei Scan-Ende offene Requests sind keine nachgewiesenen Website-Fehler. Beobachtungen können denselben Vorgang mehrfach beschreiben.</p><p>Ein Inventar ist keine rechtliche Konformitätsbewertung. „Übertragen“ bestätigt keine erfolgreiche Ausführung. Query-Werte sind standardmäßig maskiert.</p><ul id="issues"></ul></section>
 <section><h2>Untersuchte und ausgelassene Seiten</h2><div class="scroll"><table><thead><tr><th>Seite</th><th>Status</th><th>Quelle / Grund</th></tr></thead><tbody id="pages"></tbody></table></div></section></main>
 <script id="data" type="application/json">${json}</script><script>${script}</script></html>`;
 }
@@ -115,8 +117,8 @@ export function writer(path: string, full: boolean) {
       if(final) {
         await writeFile(join(path,'report.html'),html(safe),{mode:0o600});
         const pageMap=new Map(safe.visits.map(v=>[v.id,v]));
-        const rows=[['URL','Origin','URL key','Page','Scenario','Mode','Phase','Type','Source','HTTP status','Completed','Failure','Directive']];
-        for(const r of safe.observations){const p=pageMap.get(r.pageId)!;rows.push([r.url,r.origin,r.urlKey,p.url,p.scenario,p.mode,r.phase,r.type,r.source,String(r.status??''),String(r.complete??''),r.failure??'',r.directive??'']);}
+        const rows=[['Outcome','Observation end','URL','Origin','URL key','Page','Scenario','Mode','Phase','Type','Source','HTTP status','Completed','Failure','Directive']];
+        for(const r of safe.observations){const p=pageMap.get(r.pageId)!;rows.push([outcome(r),r.observationEnd??'',r.url,r.origin,r.urlKey,p.url,p.scenario,p.mode,r.phase,r.type,r.source,String(r.status??''),String(r.complete??''),r.failure??'',r.directive??'']);}
         await writeFile(join(path,'resources.csv'),'\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),{mode:0o600});
       }
     });
