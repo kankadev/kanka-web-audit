@@ -18,10 +18,11 @@ scan_output=$("$scanner" git --staged --pre-commit --redact=100 --no-color --no-
 result=$?
 printf '%s\n' "$scan_output" >&2
 # Some scanner versions return zero despite a logged Git subprocess error.
-if printf '%s\n' "$scan_output" | grep -Eq '(^|[[:space:]])(ERR|FTL)([[:space:]]|$)'; then
-    echo 'Commit stopped: Gitleaks reported an internal error.' >&2
-    exit 1
-fi
+case "$scan_output" in
+    *' ERR '*|*' FTL '*|ERR\ *|FTL\ *)
+        echo 'Commit stopped: Gitleaks reported an internal error.' >&2
+        exit 1 ;;
+esac
 if [ "$result" -eq 0 ]; then
     exit 0
 fi
@@ -31,8 +32,11 @@ if [ "$result" -ne 42 ]; then
 fi
 
 tree=$(git write-tree) || exit 1
-if [ "${KANKA_COMMIT_ALLOW_TREE:-}" = "$tree" ] &&
-   printf '%s' "${KANKA_COMMIT_ALLOW_REASON:-}" | grep -q '[^[:space:]]'; then
+case "${KANKA_COMMIT_ALLOW_REASON:-}" in
+    *[![:space:]]*) reason_present=1 ;;
+    *) reason_present=0 ;;
+esac
+if [ "${KANKA_COMMIT_ALLOW_TREE:-}" = "$tree" ] && [ "$reason_present" -eq 1 ]; then
     echo 'Gitleaks findings explicitly accepted for this exact staged tree. Scan is NOT clean.' >&2
     # Do not echo the reason: it may contain private information.
     exit 0
