@@ -2,7 +2,7 @@
 
 Stand: 2026-09-12
 
-Status: Version 0.1.0 implementiert und lokal abgenommen; optionale Distribution ausstehend
+Status: Version 0.1.0 implementiert, lokal und in GitHub Actions abgenommen; optionale Distribution ausstehend
 
 Verantwortlich: kanka.dev
 
@@ -13,6 +13,7 @@ Am 2026-09-12 wurde Version 0.1.0 umgesetzt. Die Abschnitte darunter enthalten d
 - Node.js 24.19.0, Playwright 1.63.0 mit Chromium, fast-xml-parser 5.11.1 und robots-parser 3.0.1; Versionen im Lockfile festgeschrieben.
 - Acht automatisierte Testgruppen unter Windows und Linux/amd64. Der Linux-Durchlauf prüft zusätzlich den tatsächlichen SIGTERM-Prozessabbruch. Tests erzeugen ausschließlich lokale, synthetische Daten.
 - Docker-Test mit aktivierter Chromium-Sandbox, nicht privilegiertem Benutzer und gemountetem Ausgabeordner bestanden. HTML-, JSON- und CSV-Dateien sind auf dem Host vorhanden. Runtime-Image `kanka-web-audit:0.1.0` lokal gebaut.
+- GitHub Actions: Lauf `34699877739` für Code-Stand `b9f5c90fe642c61e4d4afa35e288200429e01139` erfolgreich. Container-Fixtures, Runtime-Build und CLI-Aufruf bestanden unabhängig von der lokalen Entwicklungsumgebung.
 - HTML-Bericht unter Desktop- und Mobilbreite visuell geprüft; Suche und Offline-Betrieb automatisiert geprüft. Große Listen werden schrittweise und Details beim Aufklappen erzeugt.
 - Zwei ausdrücklich freigegebene Live-Ziele wurden jeweils zehn Minuten lang in beiden CSP-Modi ohne Consent-Interaktion untersucht. Dabei wurden 42 bzw. 72 Seiten vollständig in beiden Modi bearbeitet. Beide Läufe endeten am Zeitlimit mit korrekt markierten Teilergebnissen. Zieladressen und Rohberichte bleiben außerhalb der Versionsverwaltung.
 - Produktionsabhängigkeiten ohne gemeldete npm-Audit-Funde. Vorhandene Git-Historie mit Gitleaks geprüft; Commit-Hook einschließlich gezielter Ausnahmen erneut getestet. Dies ist kein vollständiger Security-Audit der Anwendung.
@@ -288,7 +289,7 @@ Abnahme: Der dokumentierte Startbefehl funktioniert in der getesteten Umgebung u
 ### Phase 6 – Optionale Distribution
 
 - [ ] Private Registry und Release-Tags festlegen.
-- [x] Build-/Test-Automatisierung mit minimalen Berechtigungen ergänzen; Remote-Ausführung wird nach dem Push geprüft.
+- [x] Build-/Test-Automatisierung mit minimalen Berechtigungen ergänzen; Remote-Ausführung erfolgreich geprüft (Lauf `34699877739`).
 - [ ] Für öffentliche Freigabe Lizenz und Inhalte einschließlich Historie prüfen.
 - [ ] Erst nach gesonderter Entscheidung Repository oder Images öffentlich machen.
 
