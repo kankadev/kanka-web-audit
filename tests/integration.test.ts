@@ -20,9 +20,33 @@ test('outcomes distinguish CSP, HTTP, aborts and unconfirmed network causes',()=
   assert.equal(outcome({...record,status:404,failure:'net::ERR_ABORTED'}),'HTTP-Fehler');
   assert.equal(outcome({...record,failure:'net::ERR_FAILED'}),'Netzwerkfehler (Ursache offen)');
   assert.equal(outcome({...record,failure:'csp'}),'CSP blockiert');
+  assert.equal(outcome({...record,failure:'net::ERR_FAILED',corsErrorStatus:{corsError:'MissingAllowOriginHeader',failedParameter:''}}),'CORS blockiert (Browsernachweis)');
   assert.equal(outcome({...record,source:'csp',disposition:'report'}),'CSP-Meldung (nur Bericht)');
   assert.equal(outcome({...record,status:204,complete:true}),'Übertragen');
   assert.equal(outcome({...record,failure:'net::ERR_ABORTED',observationEnd:'visit-end'}),'Bei Scan-Ende offen');
+});
+
+test('CDP preserves CORS evidence, redirect methods, browser identity and automatic consent state',async()=>{
+  const f=await fixture();try{
+    const browserProfile=process.env.KWA_TEST_HEADED==='1'?'headed':'headless';
+    const dir=await output();
+    const r=await scan(config({target:f.origin+'/diagnostics',browserProfile,output:dir,maxPages:1,waitMs:400,scrollSteps:0,
+      consentStates:[{name:'automatic-acceptance',selector:'.auto-accepted'},{name:'fetch-resolved',selector:'#state:text-is("resolved")'}]}),undefined,()=>{});
+    const denied=r.observations.find(o=>o.source==='cdp'&&o.url.endsWith('/cors-denied'));
+    assert.ok(denied?.corsErrorStatus);assert.equal(outcome(denied),'CORS blockiert (Browsernachweis)');
+    const post=r.observations.find(o=>o.source==='cdp'&&o.url.endsWith('/post303'));
+    assert.equal(post?.method,'POST');assert.equal(post?.status,303);assert.ok(post?.nextId);
+    const redirected=r.observations.find(o=>o.id===post?.nextId);
+    assert.equal(redirected?.method,'GET');assert.equal(redirected?.status,204);assert.equal(redirected?.previousId,post?.id);
+    assert.ok(!outcome(redirected!).includes('CSP'));
+    const v=r.visits[0];assert.ok(v.browser?.version);assert.ok(v.browser?.userAgent);assert.equal(v.browser?.profile,browserProfile);
+    assert.equal(v.actions.length,0);assert.ok(v.consentObservations?.[0].visibleStates.includes('automatic-acceptance'));
+    assert.ok(v.consentObservations?.at(-1)?.visibleStates.includes('fetch-resolved'));
+    assert.equal(v.consentObservations?.at(-1)?.state,'ambiguous');
+    assert.ok(v.contextCloseStarted&&v.contextClosed&&v.contextCloseStarted<=v.contextClosed);
+    assert.ok(denied.failedAt&&denied.failedAt<=v.contextClosed);
+    const csv=await readFile(join(dir,'resources.csv'),'utf8');assert.ok(csv.includes('MissingAllowOriginHeader'));
+  }finally{await f.close();}
 });
 
 test('unfinished response is marked before closing the browser and exported consistently',async()=>{
@@ -50,6 +74,8 @@ test('URL/config validation and CSV formula escaping',()=>{
   assert.throws(()=>config({target:'file:///secret'}));
   assert.throws(()=>config({target:'https://site.test',maxPages:0}));
   assert.throws(()=>config({target:'https://site.test',typo:true}));
+  assert.throws(()=>config({target:'https://site.test',browserProfile:'human'}));
+  assert.throws(()=>config({target:'https://site.test',consentStates:[{name:'accepted',selector:''}]}));
   assert.equal(csvCell('=1+1'),'"\'=1+1"');
 });
 

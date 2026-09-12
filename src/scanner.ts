@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { normalizeUrl } from './config.js';
 import { Discovery } from './discovery.js';
 import { visit } from './visit.js';
+import { VERSION } from './version.js';
 import { prepareOutput, writer } from './report.js';
 import type { Options, Result, PageEntry } from './model.js';
 
@@ -12,7 +13,9 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
   const timer=setTimeout(()=>{timedOut=true;controller.abort();},options.maxDurationMs);
   const abort=()=>controller.abort(); signal?.addEventListener('abort',abort,{once:true});
   if(signal?.aborted) controller.abort();
-  const state: Result={schemaVersion:1,toolVersion:'0.1.1',started:new Date().toISOString(),state:'running',options,pages:[],visits:[],observations:[],issues:[],limitations:[
+  const state: Result={schemaVersion:1,toolVersion:VERSION,started:new Date().toISOString(),state:'running',options,pages:[],visits:[],observations:[],issues:[],limitations:[
+    'CDP und Playwright liefern getrennte Beobachtungen desselben Requests. CDP erfasst hier das Seiten-Target; separate Worker- und Out-of-process-Frame-Targets können fehlen.',
+    'Kein Consent-Klick bedeutet nicht keine Zustimmung. Sichtbare Zustände werden nur mit konfigurierten Selektoren beobachtet. Auch ein headed Browser bleibt automatisiert (webdriver).',
     'Erfasst werden entdeckte Seiten und konfigurierte Interaktionen. Das Ergebnis ist keine rechtliche Konformitätsbewertung.',
     'Jede Seite und jedes Szenario startet mit einem frischen Browserkontext. Login-Sitzungen und seitenübergreifender Consent werden nicht übernommen.',
     'Nicht ausgewählte srcset-Varianten, beliebige JavaScript-URLs, Hash-Routen und geschlossene Popups werden nicht vollständig erfasst.',
@@ -37,7 +40,7 @@ export async function scan(options: Options, signal?: AbortSignal, progress:(mes
     add(options.target,0,'start');for(const u of options.starts)add(u,0,'extra-start');
     await discovery.prepare((u,source)=>add(u,0,source));state.issues.push(...discovery.issues);
     if(controller.signal.aborted) throw new Error('Aborted');
-    browser=await chromium.launch({headless:true,chromiumSandbox:true,
+    browser=await chromium.launch({headless:options.browserProfile==='headless',chromiumSandbox:true,
       timeout:Math.max(1,Math.min(options.timeoutMs,options.maxDurationMs-(Date.now()-Date.parse(state.started))))});
     await save(state);
     let processed=0;

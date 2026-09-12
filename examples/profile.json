@@ -3,6 +3,11 @@
   "maxPages": 100,
   "concurrency": 2,
   "waitMs": 2000,
+  "browserProfile": "headless",
+  "consentStates": [
+    {"name": "accepted", "selector": "[data-consent='accepted']"},
+    {"name": "rejected", "selector": "[data-consent='rejected']"}
+  ],
   "modes": ["enforce", "inventory"],
   "scenarios": [
     { "name": "initial" },

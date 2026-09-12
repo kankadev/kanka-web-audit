@@ -8,6 +8,9 @@ export async function fixture() {
   const send=(res:ServerResponse,body:string,type='text/html',status=200)=>{res.writeHead(status,{'Content-Type':type,'Access-Control-Allow-Origin':'*'});res.end(body);};
   const asset=createServer((req,res)=>{
     const path=new URL(req.url!,'http://localhost').pathname;
+    if(path==='/cors-denied'){res.writeHead(200,{'Content-Type':'text/plain'});res.end('cors denied');return;}
+    if(path==='/post303'){res.writeHead(303,{Location:'/no-content','Access-Control-Allow-Origin':'*'});res.end();return;}
+    if(path==='/no-content'){res.writeHead(204,{'Access-Control-Allow-Origin':'*'});res.end();return;}
     if(path==='/redirect'){res.writeHead(302,{Location:`${external}/pixel.svg`});res.end();return;}
     if(path==='/entry.js')return send(res,`fetch('${external}/nested?key=fixture-query-value')`,'text/javascript');
     if(path==='/style.css')return send(res,`@font-face{font-family:fixture;src:url('${external}/font.woff2')}body{font-family:fixture}`,'text/css');
@@ -28,6 +31,11 @@ export async function fixture() {
     if(path==='/sw.js')return send(res,`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(fetch('${external}/worker-fetch')));`,'text/javascript');
     if(path==='/sw')return send(res,`<script>navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(r=>r.active.postMessage('fetch'))</script>`);
     if(path==='/pending-page')return send(res,`<script>fetch('${external}/pending').then(r=>r.text()).catch(()=>{})</script>`);
+    if(path==='/diagnostics')return send(res,`<div id="state"></div><script>
+      if(navigator.webdriver)document.querySelector('#state').className='auto-accepted';
+      fetch('${external}/cors-denied').catch(()=>{});
+      fetch('${external}/post303',{method:'POST'}).then(r=>{if(r.status===204)document.querySelector('#state').textContent='resolved';}).catch(()=>{});
+      </script>`);
     if(path==='/csp'){
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src *; img-src *; style-src * 'unsafe-inline'");
       return send(res,`<script src="${external}/entry.js"></script>`);

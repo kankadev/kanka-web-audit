@@ -12,7 +12,7 @@ export function normalizeUrl(raw: string, base?: string): string | undefined {
 export function config(input: Record<string, unknown>): Options {
   const known = new Set(['target','output','origins','ownOrigins','starts','sitemaps','scenarios','modes',
     'maxPages','maxDiscovered','maxDepth','concurrency','timeoutMs','waitMs','scrollSteps','maxDurationMs',
-    'respectRobots','fullUrls','exclude']);
+    'respectRobots','fullUrls','exclude','browserProfile','consentStates']);
   for (const key of Object.keys(input)) if (!known.has(key)) throw new Error(`Unknown option: ${key}`);
   const target = typeof input.target === 'string' ? normalizeUrl(input.target) : undefined;
   if (!target) throw new Error('Provide an absolute HTTP(S) target URL without credentials.');
@@ -49,7 +49,12 @@ export function config(input: Record<string, unknown>): Options {
   if (!modes.length || modes.some(m => !['enforce','inventory'].includes(m)) || new Set(modes).size !== modes.length) throw new Error('Invalid modes.');
   const output = input.output ?? resolve('reports', new Date().toISOString().replace(/[:.]/g, '-'));
   if (typeof output !== 'string' || !output.trim()) throw new Error('Invalid output directory.');
+  const browserProfile=input.browserProfile??'headless';
+  if(browserProfile!=='headless'&&browserProfile!=='headed')throw new Error('browserProfile must be headless or headed.');
+  const consentStates=input.consentStates??[];
+  if(!Array.isArray(consentStates)||consentStates.length>20||consentStates.some(s=>!s||typeof s.name!=='string'||!s.name.trim()||typeof s.selector!=='string'||!s.selector.trim())||new Set(consentStates.map(s=>s.name)).size!==consentStates.length)throw new Error('consentStates requires unique names and visible-state selectors (maximum 20).');
   return {
+    browserProfile,consentStates,
     target, output: resolve(output), origins: [...new Set([new URL(target).origin, ...urls('origins').map(u => new URL(u).origin)])],
     ownOrigins: urls('ownOrigins').map(u => new URL(u).origin), starts: urls('starts'), sitemaps: urls('sitemaps'),
     scenarios: scenarios as Scenario[], modes: modes as Options['modes'],

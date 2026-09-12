@@ -1,5 +1,17 @@
 # Kanka Web Audit
 
+## Änderungen in 0.1.2
+
+CDP ergänzt die Playwright-Messungen um `blockedReason` und `corsErrorStatus`. Nur ein konkreter CORS-Nachweis führt zu „CORS blockiert“. Beide Quellen bleiben getrennt und können denselben Request abbilden; im HTML hilft der Quellenfilter. Redirect-Schritte sind über `previousId`/`nextId` innerhalb derselben Quelle verbunden und erhalten Methoden und Statuscodes. Es werden keine vollständigen Request-Header oder Bodies gespeichert.
+
+Browser-Version, User-Agent, `webdriver` und Profil werden pro Besuch protokolliert. `--browser-profile headless` ist der Standard; `--browser-profile headed` öffnet einen sichtbaren automatisierten Chromium. Für Vergleiche zwei Läufe mit getrennten Ausgabeordnern ausführen. Headed benötigt eine grafische Sitzung und ist weder ein garantiert normales Besucherprofil noch eine Umgehung von Bot-Erkennung. Der Container läuft standardmäßig headless; ein echter manueller Besuch bleibt bei abweichender CMP-Erkennung eine gesonderte Vergleichsprüfung.
+
+`consentStates` enthält benannte Selektoren für sichtbare Zustände (siehe Beispielprofil). Vor und nach den Aktionen werden sichtbare Treffer dokumentiert: kein Treffer ist `unknown`, mehrere sind `ambiguous`. Namen sind vom Anwender definierte Beobachtungen, kein automatisch ermittelter rechtlicher Zustimmungsstatus. `scenarioConfirmed` beschreibt weiterhin nur den Ablauf des konfigurierten Szenarios. Ohne Consent-Aktion bedeutet es insbesondere keine nachgewiesene Zustimmung oder Ablehnung. Automatische Bot-Zustimmung kann auch ohne Klick stattfinden.
+
+Request-, Antwort-, Abschluss-, Fehler- und `context.close`-Zeitpunkte bleiben im JSON erhalten. CDP-Redirects haben `redirectAt`, ohne ein nicht geliefertes `loadingFinished`-Ereignis vorzutäuschen. Antwort-/Abschluss-/Fehlerzeiten sind Empfangszeiten der Messereignisse; CDP-Requests liefern zusätzlich Protokollzeit und Browser-Walltime. Die CDP-Ergänzung deckt das Seiten-Target ab; separate Worker- und Out-of-process-Frame-Targets sind nicht vollständig erfasst. Dort bleiben vorhandene Playwright-Befunde ohne garantierte CDP-Ursachendiagnose erhalten.
+
+HTTP 204 mit `ERR_ABORTED` sagt nichts Sicheres über das Auflösen eines JavaScript-fetch oder die Verarbeitung beim Anbieter aus. HTTP-Antwort und Browser-Abschluss werden getrennt angezeigt; die Anwendung instrumentiert keine JavaScript-Promises.
+
 ## Änderungen in 0.1.1
 
 HTML und CSV unterscheiden belegte CSP-Blockaden, HTTP-Fehler, Netzwerkfehler mit ungeklärter Ursache und Abbrüche nach empfangener Antwort. HTTP 204 mit anschließendem Abbruch wird nicht als CSP-Blockade interpretiert. CSP-Meldungen im Report-only-Modus bleiben gesondert sichtbar.
@@ -12,7 +24,7 @@ Ein Projekt von kanka.dev zur Bestandsaufnahme externer Website-Ressourcen als G
 
 ## Projektstand
 
-Version 0.1.1 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
+Version 0.1.2 enthält einen ausführbaren Chromium-Scanner, eine Kommandozeile, ein Dockerfile und lokale HTML-, JSON- und CSV-Berichte. Die Browser-Integrationstests wurden unter Windows und in Linux/amd64-Containern ausgeführt. Der Scanner arbeitet ohne Datenbank oder dauerhaft laufenden Server.
 
 Der verbindliche Funktionsumfang, die vorgesehenen Umsetzungsschritte und deren Abnahmekriterien stehen in [plan.md](plan.md). Geplante Funktionen sind dort beschrieben; diese Datei dokumentiert den tatsächlich erreichten Stand.
 
@@ -55,7 +67,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD '.git/browsers'
 Das Image lässt sich direkt aus diesem privaten Checkout bauen. Es läuft als Benutzer `node`, enthält Chromium und benötigt das mitgelieferte Seccomp-Profil für Benutzer-Namensräume. Es benötigt weder `--privileged` noch eine deaktivierte Browser-Sandbox.
 
 ```sh
-docker build --target runtime -t kanka-web-audit:0.1.1 .
+docker build --target runtime -t kanka-web-audit:0.1.2 .
 ```
 
 PowerShell:
@@ -65,7 +77,7 @@ New-Item -ItemType Directory -Force reports | Out-Null
 docker run --rm --init --shm-size=1g `
   --security-opt seccomp=./docker/seccomp_profile.json `
   --mount "type=bind,source=$($PWD.Path)/reports,target=/reports" `
-  kanka-web-audit:0.1.1 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.1.2 https://site.test/ --output /reports/first-scan
 ```
 
 Linux/macOS-Shell:
@@ -76,12 +88,12 @@ docker run --rm --init --shm-size=1g \
   --user "$(id -u):$(id -g)" \
   --security-opt seccomp=./docker/seccomp_profile.json \
   --mount "type=bind,source=$PWD/reports,target=/reports" \
-  kanka-web-audit:0.1.1 https://site.test/ --output /reports/first-scan
+  kanka-web-audit:0.1.2 https://site.test/ --output /reports/first-scan
 ```
 
 Der Ausgabeordner muss für den Containerbenutzer beschreibbar sein. Getestet wurde Docker Desktop mit Linux/amd64-Containern; andere Betriebssysteme und Architekturen sind noch nicht abgenommen. Auf Hosts mit zusätzlichen Beschränkungen für Benutzer-Namensräume muss die Hostkonfiguration geprüft werden. Herkunft und Lizenz des Profils stehen in [docker/readme.md](docker/readme.md).
 
-Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.1.1` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
+Ohne Registry lässt sich ein lokal gebautes Image mit `docker save -o kanka-web-audit.tar kanka-web-audit:0.1.2` übertragen und mit `docker load -i kanka-web-audit.tar` wieder einlesen. Das Seccomp-Profil wird zusätzlich benötigt. Image-Archive gehören nicht ins Git-Repository.
 
 ## Scan-Einstellungen
 

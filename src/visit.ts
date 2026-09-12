@@ -1,6 +1,7 @@
 import type { Browser, Request, Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
 import { normalizeUrl } from './config.js';
+import { observeNetwork } from './network.js';
 import type { Options, Mode, Scenario, Visit, Observation, Action } from './model.js';
 
 export async function visit(browser: Browser, url: string, mode: Mode, scenario: Scenario,
@@ -14,6 +15,7 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
   let phase = 'initial';
   let recordCount=0;
   const byRequest = new Map<Request,Observation>();
+  let markCdpOpen: ((reason:'visit-end'|'scan-abort')=>void)|undefined;
   const add = (raw: string, type: string, source: Observation['source'], extra: Partial<Observation> = {}) => {
     if(recordCount>=10000 || records.length>=250000) {
       if(!item.issues.includes('Observation limit reached.'))item.issues.push('Observation limit reached.');
@@ -29,14 +31,24 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
   };
   const markOpen = (reason: 'visit-end' | 'scan-abort') => {
     for(const r of byRequest.values()) if(r.complete===undefined && !r.failure) r.observationEnd=reason;
+    markCdpOpen?.(reason);
   };
-  const abort = () => { markOpen('scan-abort'); void context.close().catch(() => {}); };
+  let closing: Promise<void>|undefined;
+  const close = () => closing??=(async()=>{
+    item.contextCloseStarted=new Date().toISOString();
+    await context.close().catch(()=>{});item.contextClosed=new Date().toISOString();
+  })();
+  const abort = () => { markOpen('scan-abort'); void close(); };
   signal.addEventListener('abort',abort,{once:true});
   const frameOf = (request: Request) => { try { return request.frame().url(); } catch { return undefined; } };
   context.on('request',request => {
     const record = add(request.url(),request.resourceType(),'network',{
       method:request.method(),frame:frameOf(request),redirectedFrom:request.redirectedFrom()?.url() });
-    if (record) byRequest.set(request,record);
+    if (record) {
+      const previous=request.redirectedFrom();const previousRecord=previous?byRequest.get(previous):undefined;
+      if(previousRecord){record.previousId=previousRecord.id;previousRecord.nextId=record.id;}
+      byRequest.set(request,record);
+    }
   });
   context.on('response',response => { const r=byRequest.get(response.request()); if(r) {r.status=response.status();r.responseAt=new Date().toISOString();} });
   context.on('requestfinished',request => { const r=byRequest.get(request); if(r) {r.complete=true;r.finishedAt=new Date().toISOString();delete r.observationEnd;} });
@@ -65,8 +77,11 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
   try {
     if(signal.aborted) throw new Error('Aborted');
     page=await context.newPage(); page.setDefaultTimeout(Math.min(options.timeoutMs,10000));
+    item.browser={version:browser.version(),profile:options.browserProfile,
+      ...await page.evaluate(()=>({userAgent:navigator.userAgent,webdriver:navigator.webdriver}))};
     // CDP pauses each redirected document request; Playwright routing only handles the first redirect hop.
     const cdp=await context.newCDPSession(page);
+    markCdpOpen=await observeNetwork(cdp,add);
     const {frameTree}=await cdp.send('Page.getFrameTree');
     cdp.on('Fetch.requestPaused',event=>{
       let blocked=false;
@@ -82,7 +97,17 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
     item.finalUrl=page.url(); item.status=response?.status();
     if(response && response.status() >= 400) item.issues.push(`Document HTTP ${response.status()}`);
     const delay=async () => { if(options.waitMs) await page!.waitForTimeout(options.waitMs); };
+    const observeConsent=async (phase:string)=>{
+      const visibleStates:string[]=[];
+      for(const state of options.consentStates) {
+        try {if(await page!.locator(state.selector).first().isVisible())visibleStates.push(state.name);}
+        catch {item.issues.push('Consent state selector could not be evaluated.');}
+      }
+      (item.consentObservations??=[]).push({phase,timestamp:new Date().toISOString(),visibleStates,
+        state:visibleStates.length===1?'observed':visibleStates.length>1?'ambiguous':'unknown'});
+    };
     await delay();
+    await observeConsent('before-actions');
     const act=async (a:Action, nextPhase:string) => {
       const result={selector:a.selector,confirmed:false}; item.actions.push(result);
       phase=nextPhase;
@@ -103,6 +128,7 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
       await page.waitForTimeout(200);
     }
     await delay();
+    await observeConsent('after-actions');
     for(const frame of page.frames()) {
       try {
         const refs=await frame.evaluate(() => {
@@ -138,7 +164,7 @@ export async function visit(browser: Browser, url: string, mode: Mode, scenario:
     for(const r of records.filter(r=>r.pageId===item.id))r.external=r.origin!==new URL(item.finalUrl ?? url).origin;
     item.elapsedMs=Date.now()-start;
     signal.removeEventListener('abort',abort);
-    await context.close().catch(() => {});
+    await close();
   }
   return links;
 }

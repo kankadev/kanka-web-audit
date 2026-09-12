@@ -40,14 +40,14 @@ const $=id=>document.getElementById(id);
 function cell(row,text){const td=document.createElement('td');td.textContent=text??'';row.append(td);return td;}
 ${outcome.toString()}
 function fill(id,values){for(const v of [...new Set(values)].sort()){const opt=document.createElement('option');opt.value=v;opt.textContent=v;$(id).append(opt);}}
-fill('type',data.observations.map(r=>r.type));fill('scenario',data.visits.map(v=>v.scenario));
+fill('source',data.observations.map(r=>r.source));fill('type',data.observations.map(r=>r.type));fill('scenario',data.visits.map(v=>v.scenario));
 fill('mode',data.visits.map(v=>v.mode));fill('state',data.observations.map(outcome));
 let visibleLimit=250;
 function render(){
  const query=$('search').value.toLowerCase();
  const records=data.observations.filter(r=>{const v=byPage.get(r.pageId);return (!$('external').checked||r.external)&&
    ($('hints').checked || !(r.type==='navigation-link'||(r.type.startsWith('link:')&&!/stylesheet|preload|modulepreload/.test(r.type))))&&
-   (!$('type').value||r.type===$('type').value)&&(!$('scenario').value||v.scenario===$('scenario').value)&&
+   (!$('source').value||r.source===$('source').value)&&(!$('type').value||r.type===$('type').value)&&(!$('scenario').value||v.scenario===$('scenario').value)&&
    (!$('mode').value||v.mode===$('mode').value)&&(!$('state').value||outcome(r)===$('state').value)&&
    (r.url+' '+v.url+' '+r.origin).toLowerCase().includes(query);});
  const groups=new Map();
@@ -63,7 +63,7 @@ function render(){
   for(const r of rs){const v=byPage.get(r.pageId);const p=document.createElement('p');
     p.textContent=v.url+' | '+v.scenario+' / '+v.mode+' | '+r.phase+' | '+r.type+' | '+outcome(r)+
       (r.status?' '+r.status:'')+(r.directive?' | '+r.directive:'')+(r.failure?' | '+r.failure:'')+(r.observationEnd?' | '+r.observationEnd:'')+' | '+r.url+
-      ' | Start: '+r.timestamp+(r.responseAt?' | Antwort: '+r.responseAt:'')+(r.finishedAt?' | Ende: '+r.finishedAt:'')+(r.failedAt?' | Fehler: '+r.failedAt:'');
+      ' | Quelle: '+r.source+' | Browser-Abschluss: '+(r.complete===true?'abgeschlossen':r.complete===false?'nicht abgeschlossen':'offen')+(r.blockedReason?' | blockedReason: '+r.blockedReason:'')+(r.corsErrorStatus?' | CORS: '+JSON.stringify(r.corsErrorStatus):'')+(r.previousId?' | Vorgänger: '+r.previousId:'')+(r.nextId?' | Nachfolger: '+r.nextId:'')+' | ID: '+r.id+' | Start: '+r.timestamp+(r.responseAt?' | Antwort: '+r.responseAt:'')+(r.finishedAt?' | Ende: '+r.finishedAt:'')+(r.failedAt?' | Fehler: '+r.failedAt:'');
     list.append(p);} });
   details.append(list);cell(tr,'').append(details);
   cell(tr,[...new Set(rs.map(r=>r.type))].join(', '));
@@ -80,6 +80,7 @@ $('target').textContent=data.options.target;
 $('timing').textContent=data.started+' — '+(data.ended||'Zwischenstand');
 for(const text of [...data.issues,...data.limitations]){const li=document.createElement('li');li.textContent=text;$('issues').append(li);}
 for(const p of data.pages){const tr=document.createElement('tr');cell(tr,p.url);cell(tr,p.state);cell(tr,p.reason||p.source);$('pages').append(tr);}
+for(const v of data.visits){const li=document.createElement('li');li.textContent=v.url+' | '+v.mode+' / '+v.scenario+' | Browser: '+JSON.stringify(v.browser??'nicht erfasst')+' | Consent-Beobachtungen: '+JSON.stringify(v.consentObservations??'nicht erfasst')+' | context.close: '+(v.contextCloseStarted??'nicht erfasst')+' → '+(v.contextClosed??'nicht erfasst');$('visits').append(li);}
 for(const v of data.visits.filter(v=>v.issues.length||!v.scenarioConfirmed)){const li=document.createElement('li');li.textContent=v.url+' | '+v.scenario+' / '+v.mode+': '+v.issues.join('; ');$('issues').append(li);}
 render();
 `;
@@ -92,12 +93,12 @@ export function html(result: unknown): string {
 </style><header><small>kanka.dev / Ressourceninventar</small><h1>Web Audit <span id="status" class="badge"></span></h1><p id="target"></p><p id="overview"></p><small id="timing"></small></header>
 <main><section><h2>Ressourcen</h2><div class="bar"><label>Suche<input id="search" type="search" placeholder="Ressource oder Fundseite"></label>
 <label>Gruppierung<select id="group"><option value="origin">Origin</option><option value="url">Exakte URL</option></select></label>
-<label>Typ<select id="type"><option value="">Alle</option></select></label><label>Szenario<select id="scenario"><option value="">Alle</option></select></label>
+<label>Quelle<select id="source"><option value="">Alle</option></select></label><label>Typ<select id="type"><option value="">Alle</option></select></label><label>Szenario<select id="scenario"><option value="">Alle</option></select></label>
 <label>CSP-Modus<select id="mode"><option value="">Alle</option></select></label><label>Status<select id="state"><option value="">Alle</option></select></label>
 <label class="check"><input id="external" type="checkbox" checked>Nur externe Ressourcen</label><label class="check"><input id="hints" type="checkbox">Auch Links und Ladehinweise</label></div><p id="count" class="muted"></p>
 <div class="scroll"><table><thead><tr><th>Origin / URL · aufklappen für Fundstellen</th><th>Typen</th><th>Seiten</th><th>Status</th></tr></thead><tbody id="results"></tbody></table></div><button id="more" hidden>Weitere 250 Gruppen anzeigen</button></section>
 <section><h2>Abdeckung und Grenzen</h2><p>CSP blockiert bedeutet eine belegte CSP-Blockade. HTTP-Fehler und Netzwerkabbrüche werden gesondert ausgewiesen. Ein Abbruch nach einer Antwort (auch HTTP 204) beweist keine CSP-Blockade. Bei Scan-Ende offene Requests sind keine nachgewiesenen Website-Fehler. Beobachtungen können denselben Vorgang mehrfach beschreiben.</p><p>Ein Inventar ist keine rechtliche Konformitätsbewertung. „Übertragen“ bestätigt keine erfolgreiche Ausführung. Query-Werte sind standardmäßig maskiert.</p><ul id="issues"></ul></section>
-<section><h2>Untersuchte und ausgelassene Seiten</h2><div class="scroll"><table><thead><tr><th>Seite</th><th>Status</th><th>Quelle / Grund</th></tr></thead><tbody id="pages"></tbody></table></div></section></main>
+<section><h2>Browserprofile und beobachtete Zustände</h2><p>Kein Klick beweist keine fehlende Zustimmung. Zustandsnamen entsprechen den konfigurierten sichtbaren Selektoren. Auch headed ist automatisiert. CDP und network können denselben Request abbilden; der Quellenfilter trennt die Messungen.</p><details><summary>Besuche anzeigen</summary><ul id="visits"></ul></details></section><section><h2>Untersuchte und ausgelassene Seiten</h2><div class="scroll"><table><thead><tr><th>Seite</th><th>Status</th><th>Quelle / Grund</th></tr></thead><tbody id="pages"></tbody></table></div></section></main>
 <script id="data" type="application/json">${json}</script><script>${script}</script></html>`;
 }
 export async function prepareOutput(path: string) {
@@ -117,8 +118,8 @@ export function writer(path: string, full: boolean) {
       if(final) {
         await writeFile(join(path,'report.html'),html(safe),{mode:0o600});
         const pageMap=new Map(safe.visits.map(v=>[v.id,v]));
-        const rows=[['Outcome','Observation end','URL','Origin','URL key','Page','Scenario','Mode','Phase','Type','Source','HTTP status','Completed','Failure','Directive']];
-        for(const r of safe.observations){const p=pageMap.get(r.pageId)!;rows.push([outcome(r),r.observationEnd??'',r.url,r.origin,r.urlKey,p.url,p.scenario,p.mode,r.phase,r.type,r.source,String(r.status??''),String(r.complete??''),r.failure??'',r.directive??'']);}
+        const rows=[['Outcome','Observation end','URL','Origin','URL key','Page','Scenario','Mode','Phase','Type','Source','HTTP status','Completed','Failure','Directive','ID','Previous ID','Next ID','Method','Blocked reason','CORS','Request at','Response at','Finished at','Failed at']];
+        for(const r of safe.observations){const p=pageMap.get(r.pageId)!;rows.push([outcome(r),r.observationEnd??'',r.url,r.origin,r.urlKey,p.url,p.scenario,p.mode,r.phase,r.type,r.source,String(r.status??''),String(r.complete??''),r.failure??'',r.directive??'',r.id,r.previousId??'',r.nextId??'',r.method??'',r.blockedReason??'',JSON.stringify(r.corsErrorStatus??null),r.timestamp,r.responseAt??'',r.finishedAt??'',r.failedAt??'']);}
         await writeFile(join(path,'resources.csv'),'\uFEFF'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),{mode:0o600});
       }
     });

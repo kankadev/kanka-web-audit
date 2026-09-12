@@ -2,9 +2,21 @@
 
 Stand: 2026-09-12
 
-Status: Version 0.1.1 implementiert und unter Windows und Linux getestet; optionale Distribution ausstehend
+Status: Version 0.1.2 implementiert; optionale Distribution ausstehend
 
 Verantwortlich: kanka.dev
+
+## Nachbesserung 0.1.2
+
+- [x] HTTP-Status und Browser-Abschluss getrennt erhalten; HTTP 204 mit Abbruch nicht als sicher fehlgeschlagene Übertragung interpretieren.
+- [x] Bestätigte CORS-Fehler anhand von CDP `corsErrorStatus` klassifizieren; `blockedReason` und unveränderte Browserfehlermeldungen erhalten.
+- [x] Redirect-Schritte einschließlich Methoden, Status, Verknüpfungen und Ereigniszeitpunkten erfassen. CDP und Playwright bleiben getrennte Messquellen.
+- [x] Browser-Version, User-Agent, webdriver, Profil sowie Beginn/Ende von context.close pro Besuch dokumentieren.
+- [x] Headless-/headed-Ausführung mit getrennten Ausgabeordnern ermöglichen. Beide Varianten bleiben automatisierte Browser, kein garantierter Ersatz für einen manuellen Besucher.
+- [x] Sichtbare Consent-Zustände vor und nach Aktionen erfassen; fehlende oder mehrdeutige Nachweise ausdrücklich kennzeichnen. Kein Klick wird nicht als fehlende Zustimmung ausgelegt.
+- [x] Synthetische Regressionen für CORS, POST→303→GET, HTTP 204 mit aufgelöstem fetch und automatische Zustimmung ohne Klick ergänzt. Elf Testgruppen unter Windows und Linux/amd64 bestanden; Diagnosefall zusätzlich mit sichtbarem Chromium unter Windows bestanden. Runtime-Image 0.1.2 gebaut und Versionsausgabe geprüft.
+
+Die neuen Diagnosedaten erfordern einen neuen Scan. Alte Reports können neu gerendert werden, erhalten aber keine rückwirkend erfundenen Netzwerk- oder Consent-Nachweise. Separate Worker- und Out-of-process-Frame-Targets sind in der CDP-Ergänzung nicht vollständig abgedeckt.
 
 ## Nachbesserung 0.1.1
 

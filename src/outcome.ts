@@ -2,7 +2,8 @@ import type { Observation } from './model.js';
 
 // Shared by HTML and CSV; evidence takes precedence over inferred causes.
 export function outcome(r: Observation): string {
-  if ((r.source==='csp' && r.disposition==='enforce') || r.failure==='csp' || r.failure==='CSP blocked') return 'CSP blockiert';
+  if ((r.source==='csp' && r.disposition==='enforce') || r.failure==='csp' || r.failure==='CSP blocked' || r.blockedReason==='csp') return 'CSP blockiert';
+  if (r.corsErrorStatus) return 'CORS blockiert (Browsernachweis)';
   if (r.status !== undefined && r.status>=400) return 'HTTP-Fehler';
   if (r.source==='csp') return 'CSP-Meldung (nur Bericht)';
   if (r.observationEnd) return 'Bei Scan-Ende offen';
