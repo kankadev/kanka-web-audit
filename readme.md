@@ -82,7 +82,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $PWD '.git/browsers'
 
 ## Mit Docker starten
 
-Das Image lässt sich direkt aus diesem privaten Checkout bauen. Es läuft als Benutzer `node`, enthält Chromium und benötigt das mitgelieferte Seccomp-Profil für Benutzer-Namensräume. Es benötigt weder `--privileged` noch eine deaktivierte Browser-Sandbox.
+Das Image lässt sich direkt aus diesem Checkout bauen. Es läuft als Benutzer `node`, enthält Chromium und benötigt das mitgelieferte Seccomp-Profil für Benutzer-Namensräume. Es benötigt weder `--privileged` noch eine deaktivierte Browser-Sandbox.
 
 ```sh
 docker build --target runtime -t kanka-web-audit:0.2.0 .
@@ -190,7 +190,7 @@ Die Suite startet ausschließlich lokale Fixture-Server. Sie prüft Sitemap-/Lin
 
 ## Veröffentlichung
 
-Das Repository ist zunächst privat. Über eine öffentliche Freigabe, eine Nutzungslizenz und die Veröffentlichung von Container-Images wird vor dem ersten öffentlichen Release entschieden.
+Das Repository ist seit dem 12.09.2026 öffentlich. Eine offene Nutzungslizenz wurde noch nicht vergeben (`UNLICENSED`); mitgelieferte Drittanbieter-Lizenztexte bleiben unverändert. `private: true` in package.json verhindert eine versehentliche npm-Veröffentlichung und bezeichnet nicht die GitHub-Sichtbarkeit. Container-Images werden bisher lokal gebaut; eine Registry-Veröffentlichung ist noch nicht eingerichtet.
 
 ## Prüfung vor Commits
 

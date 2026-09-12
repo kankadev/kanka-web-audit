@@ -2,9 +2,13 @@
 
 Stand: 2026-09-12
 
-Status: Version 0.2.0 implementiert; optionale Distribution ausstehend
+Status: Version 0.2.0 implementiert; Repository öffentlich, optionale Image-Distribution ausstehend
 
 Verantwortlich: kanka.dev
+
+## Öffentliche Freigabe am 12.09.2026
+
+Vor der Freigabe wurden alle zehn vorhandenen Commits und 79 historischen Dateiversionen geprüft. Gitleaks meldete keine Funde. Keine Kunden- oder Scan-Zieldomains, lokalen Benutzerpfade oder unerwünschten Werkzeug-Zuschreibungen gefunden. Enthalten bleiben die eigene Projektidentität, synthetische Testadressen sowie notwendige Paket-, Standard- und Lizenzadressen. GitHub enthielt keine zusätzlichen Branches, Tags, Issues, Releases oder hochgeladenen Actions-Artefakte. Die Sichtbarkeit wurde nach ausdrücklicher Freigabe auf öffentlich gesetzt und über die API verifiziert. Die Lizenzangabe bleibt vorerst `UNLICENSED`; Reports bleiben lokale, ignorierte Arbeitsdaten.
 
 ## Gründlicher Audit 0.2.0
 
@@ -327,8 +331,8 @@ Abnahme: Der dokumentierte Startbefehl funktioniert in der getesteten Umgebung u
 
 - [ ] Private Registry und Release-Tags festlegen.
 - [x] Build-/Test-Automatisierung mit minimalen Berechtigungen ergänzen; Remote-Ausführung erfolgreich geprüft (Lauf `34699877739`).
-- [ ] Für öffentliche Freigabe Lizenz und Inhalte einschließlich Historie prüfen.
-- [ ] Erst nach gesonderter Entscheidung Repository oder Images öffentlich machen.
+- [x] Inhalte einschließlich Historie vor öffentlicher Freigabe prüfen; Lizenzangabe bleibt vorerst `UNLICENSED`.
+- [x] Repository nach ausdrücklicher Entscheidung öffentlich machen. Image-Publishing bleibt optional.
 
 ## 15. Arbeitsregeln und Pflege
 
