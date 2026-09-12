@@ -221,9 +221,11 @@ Ein erster realer Scan erfolgt nur gegen ein bewusst ausgewähltes eigenes Ziel.
 - [x] Privates Repository anlegen.
 - [x] Lokale Commit-Identität auf Akay mit der KankaDev-Mailadresse setzen.
 - [x] Plan und faktenbasierte Readme vorbereiten.
-- [ ] Dokumentation committen, übertragen und Remote-Stand prüfen.
+- [x] Dokumentation committen, übertragen und Remote-Stand prüfen.
 
 Abnahme: Beide Dokumente liegen im privaten Repository; Autor und Committer stimmen.
+
+Nachweis vom 2026-09-12: Initialer Dokumentationscommit `66b235f` nach `main` übertragen; Remote-SHA stimmt mit dem lokalen Commit überein. Autor und Committer sind jeweils Akay mit der konfigurierten KankaDev-Mailadresse. Der vorgelagerte Git-Whitespace-Check war erfolgreich. Anwendungstests sind in dieser Phase noch nicht vorhanden.
 
 ### Phase 1 – Reproduzierbarer technischer Kern
 
